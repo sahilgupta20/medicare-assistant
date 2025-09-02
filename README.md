@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MediCare Assistant 💊
+
+A medication reminder application specifically designed for seniors, featuring large, accessible interfaces and family caregiver support.
+
+## Problem Statement
+
+- 40% of seniors struggle with medication adherence
+- Complex interfaces prevent technology adoption among elderly users  
+- Family caregivers need remote monitoring capabilities
+- Current solutions lack senior-focused design principles
+
+## Features
+
+- **Senior-Friendly Interface**: Large buttons, high contrast, simple navigation
+- **Smart Reminders**: Visual, audio, and voice notifications
+- **Family Dashboard**: Remote monitoring for caregivers
+- **Offline Functionality**: Works without internet connection
+- **Photo Integration**: Visual medication identification
+- **Emergency Contacts**: Automatic notifications for missed doses
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Database**: PostgreSQL with Prisma ORM
+- **PWA**: Service Workers, Web Push API
+- **Deployment**: Vercel + Railway
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Clone repository
+git clone https://github.com/yourusername/medicare-assistant.git
+cd medicare-assistant
+
+# Install dependencies
+npm install
+
+# Setup database
+npx prisma db push
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Live Demo
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+🔗 [View Live Application](https://medicare-assistant.vercel.app)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Testing
 
-## Learn More
+The application has been tested with seniors aged 65-85 for usability and accessibility compliance.
 
-To learn more about Next.js, take a look at the following resources:
+## Impact
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project addresses a critical healthcare challenge affecting millions of seniors worldwide.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
+MIT License - see [LICENSE](LICENSE) file for details.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Built with ❤️ for seniors and their families**

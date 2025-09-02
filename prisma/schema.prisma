@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  role      UserRole @default(SENIOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  medications     Medication[]
+  medicationLogs  MedicationLog[]
+  caregivers      Caregiver[] @relation("SeniorCaregivers")
+  patients        Caregiver[] @relation("CaregiverPatients")
+
+  @@map("users")
+}
+
+model Medication {
+  id          String   @id @default(cuid())
+  name        String
+  dosage      String
+  description String?
+  photoUrl    String?
+  color       String?
+  shape       String?
+  frequency   String // "daily", "twice_daily", "weekly", etc.
+  times       String[] // ["08:00", "20:00"] for specific times
+  startDate   DateTime
+  endDate     DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicationLogs  MedicationLog[]
+  reminders       Reminder[]
+
+  @@map("medications")
+}
+
+model MedicationLog {
+  id           String    @id @default(cuid())
+  takenAt      DateTime?
+  scheduledFor DateTime
+  status       LogStatus @default(PENDING)
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  // Relationships
+  userId       String
+  medicationId String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@map("medication_logs")
+}
+
+model Reminder {
+  id           String        @id @default(cuid())
+  scheduledFor DateTime
+  type         ReminderType  @default(NOTIFICATION)
+  status       ReminderStatus @default(PENDING)
+  message      String?
+  createdAt    DateTime      @default(now())
+
+  // Relationships
+  medicationId String
+  medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@map("reminders")
+}
+
+model Caregiver {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relationships
+  caregiverId String
+  patientId   String
+  caregiver   User   @relation("CaregiverPatients", fields: [caregiverId], references: [id], onDelete: Cascade)
+  patient     User   @relation("SeniorCaregivers", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([caregiverId, patientId])
+  @@map("caregivers")
+}
+
+enum UserRole {
+  SENIOR
+  CAREGIVER
+  ADMIN
+}
+
+enum LogStatus {
+  PENDING
+  TAKEN
+  MISSED
+  SKIPPED
+}
+
+enum ReminderType {
+  NOTIFICATION
+  EMAIL
+  SMS
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  ACKNOWLEDGED
+}

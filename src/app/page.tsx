@@ -1,37 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { Pill, Users, Bell, Heart, Clock, Shield, Sun, Moon, Coffee } from 'lucide-react'
+import { Pill, Users, Bell, Heart, Shield, Sun } from 'lucide-react'
 
 export default function HomePage() {
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [userName] = useState("Sarah") // Mock user name
-  
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const getGreeting = () => {
-    const hour = currentTime.getHours()
-    if (hour < 12) return { text: "Good morning", icon: Sun, color: "text-amber-600" }
-    if (hour < 17) return { text: "Good afternoon", icon: Coffee, color: "text-orange-600" }
-    return { text: "Good evening", icon: Moon, color: "text-indigo-600" }
-  }
-
-  const greeting = getGreeting()
-  const GreetingIcon = greeting.icon
+  const [userName] = useState("Sahil")
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 relative overflow-hidden">
       {/* Floating decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-rose-200 to-pink-300 rounded-full opacity-30 animate-pulse"></div>
-        <div className="absolute top-40 right-32 w-24 h-24 bg-gradient-to-br from-blue-200 to-indigo-300 rounded-full opacity-40 animate-bounce" style={{animationDuration: '3s'}}></div>
-        <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-gradient-to-br from-green-200 to-emerald-300 rounded-full opacity-35 animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-rose-200 to-pink-300 rounded-full opacity-30"></div>
+        <div className="absolute top-40 right-32 w-24 h-24 bg-gradient-to-br from-blue-200 to-indigo-300 rounded-full opacity-40"></div>
+        <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-gradient-to-br from-green-200 to-emerald-300 rounded-full opacity-35"></div>
       </div>
 
       {/* Header with personality */}
@@ -43,7 +25,7 @@ export default function HomePage() {
                 <div className="bg-gradient-to-br from-rose-400 to-pink-600 p-4 rounded-3xl shadow-lg transform rotate-3 hover:rotate-0 transition-transform duration-300">
                   <Pill className="h-10 w-10 text-white" />
                 </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full border-2 border-white animate-ping"></div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
               <div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 to-purple-600 bg-clip-text text-transparent">
@@ -55,16 +37,15 @@ export default function HomePage() {
             
             <div className="text-right bg-white/50 rounded-3xl p-6 backdrop-blur-sm shadow-lg border border-white/30">
               <div className="flex items-center space-x-2 mb-2">
-                <GreetingIcon className={`h-6 w-6 ${greeting.color}`} />
-                <span className={`text-lg font-semibold ${greeting.color}`}>{greeting.text}, {userName}!</span>
+                <Sun className="h-6 w-6 text-amber-600" />
+                <span className="text-lg font-semibold text-amber-600">Hello, {userName}!</span>
               </div>
-              <div className="text-3xl font-bold text-gray-800">{currentTime.toLocaleTimeString()}</div>
-              <div className="text-gray-600">{currentTime.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}</div>
+              <div className="text-3xl font-bold text-gray-800">
+                MediCare Assistant
+              </div>
+              <div className="text-gray-600">
+                Your health companion
+              </div>
             </div>
           </div>
         </div>
@@ -84,7 +65,7 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-r from-rose-200 to-purple-200 blur-3xl opacity-30 rounded-full"></div>
           </div>
           <p className="text-2xl text-gray-700 mb-12 max-w-4xl mx-auto leading-relaxed">
-            Never worry about forgetting your medicine again. We're here to gently remind you and keep your family connected to your wellness journey. 💝
+            Never worry about forgetting your medicine again. We're here to gently remind you and keep your family connected to your wellness journey.
           </p>
         </div>
         
@@ -104,7 +85,6 @@ export default function HomePage() {
                     See all your medicines in one simple place. Large pictures, clear instructions, and gentle reminders.
                   </p>
                 </div>
-                {/* Decorative gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-rose-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem]"></div>
               </div>
             </div>
@@ -132,7 +112,6 @@ export default function HomePage() {
 
         {/* Features with warm, human touch */}
         <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-[3rem] shadow-2xl p-16 mb-20 border border-white/50 relative overflow-hidden">
-          {/* Background pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, #6366f1 1px, transparent 0)', backgroundSize: '40px 40px'}}></div>
           </div>
@@ -152,7 +131,7 @@ export default function HomePage() {
                   <div className="relative bg-gradient-to-br from-blue-400 to-indigo-600 w-24 h-24 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl">
                     <Bell className="h-12 w-12 text-white" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-400 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-400 rounded-full"></div>
                 </div>
                 <h4 className="text-3xl font-bold text-gray-800 mb-6">Gentle Reminders</h4>
                 <p className="text-lg text-gray-600 leading-relaxed">
@@ -166,7 +145,7 @@ export default function HomePage() {
                   <div className="relative bg-gradient-to-br from-rose-400 to-pink-600 w-24 h-24 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl">
                     <Heart className="h-12 w-12 text-white" />
                   </div>
-                  <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
+                  <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-green-400 rounded-full"></div>
                 </div>
                 <h4 className="text-3xl font-bold text-gray-800 mb-6">Family Love</h4>
                 <p className="text-lg text-gray-600 leading-relaxed">
@@ -180,7 +159,7 @@ export default function HomePage() {
                   <div className="relative bg-gradient-to-br from-emerald-400 to-green-600 w-24 h-24 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl">
                     <Shield className="h-12 w-12 text-white" />
                   </div>
-                  <div className="absolute top-2 right-2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                  <div className="absolute top-2 right-2 w-3 h-3 bg-yellow-400 rounded-full"></div>
                 </div>
                 <h4 className="text-3xl font-bold text-gray-800 mb-6">Always There</h4>
                 <p className="text-lg text-gray-600 leading-relaxed">
@@ -236,7 +215,7 @@ export default function HomePage() {
             Built with care, love, and understanding
           </p>
           <p className="text-gray-400">
-            For seniors and the families who love them ❤️
+            For seniors and the families who love them
           </p>
         </div>
       </footer>

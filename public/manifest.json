@@ -1,0 +1,56 @@
+{
+  "name": "MediCare Assistant",
+  "short_name": "MediCare",
+  "description": "Medication reminder app designed for seniors",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e11d48",
+  "orientation": "portrait-primary",
+  "categories": ["health", "medical", "productivity"],
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16",
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512", 
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Medications",
+      "short_name": "Medications",
+      "description": "View and manage your medications",
+      "url": "/medications",
+      "icons": [{ 
+        "src": "/icon-192.png", 
+        "sizes": "192x192",
+        "type": "image/png"
+      }]
+    },
+    {
+      "name": "Add Medication",
+      "short_name": "Add Med",
+      "description": "Add a new medication",
+      "url": "/medications?add=true",
+      "icons": [{ 
+        "src": "/icon-192.png", 
+        "sizes": "192x192",
+        "type": "image/png"
+      }]
+    }
+  ]
+}

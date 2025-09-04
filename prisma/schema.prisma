@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -19,9 +19,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relationships
+  // Relationships - remove medicationLogs for now
   medications     Medication[]
-  medicationLogs  MedicationLog[]
   caregivers      Caregiver[] @relation("SeniorCaregivers")
   patients        Caregiver[] @relation("CaregiverPatients")
 
@@ -37,7 +36,7 @@ model Medication {
   color       String?
   shape       String?
   frequency   String // "daily", "twice_daily", "weekly", etc.
-  times       String[] // ["08:00", "20:00"] for specific times
+  times       String   // "08:00,20:00" - comma separated times
   startDate   DateTime
   endDate     DateTime?
   isActive    Boolean  @default(true)
@@ -61,10 +60,8 @@ model MedicationLog {
   notes        String?
   createdAt    DateTime  @default(now())
 
-  // Relationships
-  userId       String
+  // Only keep medication relationship, remove user for now
   medicationId String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
 
   @@map("medication_logs")

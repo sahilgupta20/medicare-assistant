@@ -11,7 +11,13 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },
-  "keywords": ["medication", "seniors", "healthcare", "accessibility", "nextjs"],
+  "keywords": [
+    "medication",
+    "seniors",
+    "healthcare",
+    "accessibility",
+    "nextjs"
+  ],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {

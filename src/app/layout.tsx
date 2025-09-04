@@ -9,7 +9,30 @@ export const metadata: Metadata = {
   description: 'Simple, accessible medication management designed specifically for seniors and their families.',
   keywords: ['medication', 'seniors', 'healthcare', 'accessibility', 'reminders'],
   authors: [{ name: 'Your Name' }],
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-192.png',
+    apple: '/icon-192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'MediCare Assistant',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'MediCare Assistant',
+    title: 'MediCare Assistant - Medication Reminders for Seniors',
+    description: 'Simple, accessible medication management designed specifically for seniors and their families.',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'MediCare Assistant - Medication Reminders for Seniors',
+    description: 'Simple, accessible medication management designed specifically for seniors and their families.',
+  },
 }
 
 export default function RootLayout({
@@ -20,11 +43,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#3B82F6" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="theme-color" content="#e11d48" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="MediCare" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={`${inter.className} bg-gray-50 min-h-screen`}>
         <div className="min-h-screen flex flex-col">
@@ -32,6 +58,24 @@ export default function RootLayout({
             {children}
           </main>
         </div>
+        
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('✅ SW registered successfully:', registration.scope);
+                    })
+                    .catch(function(error) {
+                      console.log('❌ SW registration failed:', error);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   )

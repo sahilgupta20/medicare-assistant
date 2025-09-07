@@ -1,4 +1,4 @@
-// src/app/family/page.tsx
+// src/app/family/page.tsx - UPDATED to connect with real medication data
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -15,15 +15,31 @@ import {
   Plus,
   Shield,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  Bell,
+  RefreshCw
 } from 'lucide-react'
 
+// Types matching your existing medication system
 type MedicationStatus = {
+  id: string
   medicationName: string
   dosage: string
   scheduledTime: string
   status: 'taken' | 'missed' | 'pending'
   takenAt?: Date
+  missedSince?: string // How long ago it was missed
+}
+
+type ActiveAlert = {
+  id: string
+  medicationId: string
+  medicationName: string
+  scheduledTime: string
+  missedTime: string
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  escalationLevel: number
+  alertMessage: string
 }
 
 type FamilyMember = {
@@ -34,125 +50,219 @@ type FamilyMember = {
   relationship: string
   avatar?: string
   isEmergencyContact: boolean
-}
-
-type DailyReport = {
-  date: string
-  totalMedications: number
-  takenOnTime: number
-  takenLate: number
-  missed: number
-  adherencePercentage: number
+  role: 'primary' | 'secondary' | 'observer'
+  notificationPreferences: {
+    daily_summary: boolean
+    missed_medication: boolean
+    emergency_only: boolean
+  }
 }
 
 export default function FamilyPage() {
   const [seniorName] = useState("Sahil")
   const [todayStatus, setTodayStatus] = useState<MedicationStatus[]>([])
+  const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([])
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([])
-  const [weeklyReport, setWeeklyReport] = useState<DailyReport[]>([])
-  const [showAddFamily, setShowAddFamily] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   useEffect(() => {
-    fetchTodayStatus()
-    fetchFamilyMembers()
-    fetchWeeklyReport()
+    fetchRealTimeData()
+    
+    // Set up real-time polling every 30 seconds
+    const interval = setInterval(() => {
+      fetchRealTimeData()
+    }, 30000)
+
+    return () => clearInterval(interval)
   }, [])
 
-  const fetchTodayStatus = async () => {
-    // Mock data - replace with actual API call
-    setTodayStatus([
-      {
-        medicationName: "Blood Pressure Medicine",
-        dosage: "10mg",
-        scheduledTime: "08:00",
-        status: "taken",
-        takenAt: new Date()
-      },
-      {
-        medicationName: "Vitamin D",
-        dosage: "1000 IU",
-        scheduledTime: "12:00",
-        status: "pending"
-      },
-      {
-        medicationName: "Heart Medication",
-        dosage: "5mg",
-        scheduledTime: "20:00",
-        status: "pending"
-      }
-    ])
-  }
-
-  const fetchFamilyMembers = async () => {
-    // Mock data - replace with actual API call
-    setFamilyMembers([
-      {
-        id: "1",
-        name: "Dr. Sarah Johnson",
-        email: "sarah@familydoc.com",
-        phone: "+1-555-0123",
-        relationship: "Primary Doctor",
-        isEmergencyContact: true
-      },
-      {
-        id: "2", 
-        name: "Priya Sharma",
-        email: "priya@email.com",
-        phone: "+1-555-0124",
-        relationship: "Daughter",
-        isEmergencyContact: true
-      },
-      {
-        id: "3",
-        name: "Raj Sharma", 
-        email: "raj@email.com",
-        phone: "+1-555-0125",
-        relationship: "Son",
-        isEmergencyContact: false
-      }
-    ])
-  }
-
-  const fetchWeeklyReport = async () => {
-    // Mock data - replace with actual API call
-    const mockData = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - (6 - i))
-      const total = 3
-      const taken = Math.floor(Math.random() * 3) + 1
-      
-      return {
-        date: date.toISOString().split('T')[0],
-        totalMedications: total,
-        takenOnTime: taken,
-        takenLate: Math.random() > 0.7 ? 1 : 0,
-        missed: total - taken,
-        adherencePercentage: Math.round((taken / total) * 100)
-      }
-    })
-    
-    setWeeklyReport(mockData)
-    setLoading(false)
-  }
-
-  const sendDailyUpdate = async () => {
-    // Mock function - implement actual notification to family
-    alert("Daily update sent to all family members! 📱")
-  }
-
-  const callEmergencyContact = (member: FamilyMember) => {
-    if (member.phone) {
-      window.location.href = `tel:${member.phone}`
+  const fetchRealTimeData = async () => {
+    try {
+      await Promise.all([
+        fetchTodayMedicationStatus(),
+        fetchActiveAlerts(),
+        fetchFamilyMembers()
+      ])
+      setLastUpdated(new Date())
+    } catch (error) {
+      console.error('Error fetching real-time data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const overallAdherence = weeklyReport.length > 0 
-    ? Math.round(weeklyReport.reduce((sum, day) => sum + day.adherencePercentage, 0) / weeklyReport.length)
-    : 0
+  const fetchTodayMedicationStatus = async () => {
+    try {
+      // Connect to your existing medication API
+      const [medicationsResponse, logsResponse] = await Promise.all([
+        fetch('/api/medications'),
+        fetch('/api/medication-logs')
+      ])
+
+      if (medicationsResponse.ok && logsResponse.ok) {
+        const medications = await medicationsResponse.json()
+        const logs = await logsResponse.json()
+        
+        const today = new Date().toDateString()
+        
+        // Transform your existing data into family dashboard format
+        const todayMedications = medications.flatMap((med: any) => 
+          med.times.split(',').map((time: string) => {
+            const medicationKey = `${med.id}-${time.trim()}`
+            const todayLog = logs.find((log: any) => {
+              const logDate = new Date(log.scheduledFor).toDateString()
+              const logTime = new Date(log.scheduledFor).toTimeString().slice(0, 5)
+              return logDate === today && log.medicationId === med.id && logTime === time.trim()
+            })
+
+            return {
+              id: medicationKey,
+              medicationName: med.name,
+              dosage: med.dosage,
+              scheduledTime: time.trim(),
+              status: todayLog?.status === 'TAKEN' ? 'taken' : 
+                      todayLog?.status === 'MISSED' ? 'missed' : 'pending',
+              takenAt: todayLog?.takenAt ? new Date(todayLog.takenAt) : undefined
+            }
+          })
+        )
+
+        setTodayStatus(todayMedications)
+      }
+    } catch (error) {
+      console.error('Error fetching medication status:', error)
+      // Keep existing mock data as fallback
+    }
+  }
+
+  const fetchActiveAlerts = async () => {
+  try {
+    const response = await fetch('/api/emergency-alerts');
+    if (response.ok) {
+      const alerts = await response.json();
+      setActiveAlerts(alerts.map(alert => ({
+        id: alert.id,
+        medicationId: alert.medicationId,
+        medicationName: alert.medication?.name || alert.medicationName,
+        scheduledTime: alert.createdAt,
+        missedTime: 'Recently',
+        severity: alert.severity,
+        escalationLevel: alert.escalationLevel,
+        alertMessage: alert.message
+      })));
+    }
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+  }
+};
+
+  const fetchFamilyMembers = async () => {
+    try {
+      const response = await fetch('/api/family-members')
+      if (response.ok) {
+        const members = await response.json()
+        setFamilyMembers(members)
+      }
+    } catch (error) {
+      console.error('Error fetching family members:', error)
+      // Keep existing mock data
+      setFamilyMembers([
+        {
+          id: "1",
+          name: "Dr. Sarah Johnson",
+          email: "sarah@familydoc.com",
+          phone: "+1-555-0123",
+          relationship: "Primary Doctor",
+          isEmergencyContact: true,
+          role: 'observer',
+          notificationPreferences: {
+            daily_summary: false,
+            missed_medication: false,
+            emergency_only: true
+          }
+        },
+        {
+          id: "2", 
+          name: "Priya Sharma",
+          email: "priya@email.com",
+          phone: "+1-555-0124",
+          relationship: "Daughter",
+          isEmergencyContact: true,
+          role: 'primary',
+          notificationPreferences: {
+            daily_summary: true,
+            missed_medication: true,
+            emergency_only: false
+          }
+        }
+      ])
+    }
+  }
+
+  const handleAlertAction = async (alertId: string, action: 'acknowledge' | 'call' | 'escalate') => {
+    try {
+      const response = await fetch(`/api/emergency-alerts/${alertId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      })
+
+      if (response.ok) {
+        if (action === 'acknowledge') {
+          // Remove alert from active list
+          setActiveAlerts(prev => prev.filter(alert => alert.id !== alertId))
+        } else if (action === 'call') {
+          // Find the alert and call the senior
+          const alert = activeAlerts.find(a => a.id === alertId)
+          if (alert) {
+            // You can integrate with your calling system here
+            alert('Calling Sahil about missed medication...')
+          }
+        }
+        
+        // Refresh data
+        fetchRealTimeData()
+      }
+    } catch (error) {
+      console.error('Error handling alert action:', error)
+    }
+  }
+
+  const sendDailyUpdate = async () => {
+    try {
+      const response = await fetch('/api/send-family-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'daily_summary',
+          medicationStatus: todayStatus,
+          seniorName
+        })
+      })
+
+      if (response.ok) {
+        alert("Daily update sent to all family members!")
+      }
+    } catch (error) {
+      console.error('Error sending daily update:', error)
+      alert("Failed to send update. Please try again.")
+    }
+  }
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'low': return 'bg-yellow-100 border-yellow-300 text-yellow-800'
+      case 'medium': return 'bg-orange-100 border-orange-300 text-orange-800'
+      case 'high': return 'bg-red-100 border-red-300 text-red-800'
+      case 'critical': return 'bg-red-200 border-red-400 text-red-900'
+      default: return 'bg-gray-100 border-gray-300 text-gray-800'
+    }
+  }
 
   const todayTaken = todayStatus.filter(med => med.status === 'taken').length
   const todayTotal = todayStatus.length
+  const todayMissed = todayStatus.filter(med => med.status === 'missed').length
 
   if (loading) {
     return (
@@ -172,7 +282,7 @@ export default function FamilyPage() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
-              <Link href="/" className="p-3 hover:bg-blue-100 rounded-2xl transition-all duration-300 group">
+              <Link href="/medications" className="p-3 hover:bg-blue-100 rounded-2xl transition-all duration-300 group">
                 <ArrowLeft className="h-8 w-8 text-gray-600 group-hover:text-blue-600" />
               </Link>
               <div className="flex items-center space-x-4">
@@ -184,11 +294,20 @@ export default function FamilyPage() {
                     Family Circle
                   </h1>
                   <p className="text-gray-600 text-lg">Stay connected with {seniorName}'s health</p>
+                  <p className="text-sm text-gray-500">Last updated: {lastUpdated.toLocaleTimeString()}</p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
+              <button 
+                onClick={fetchRealTimeData}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-2xl transition-all duration-300"
+                title="Refresh data"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </button>
+              
               <button 
                 onClick={sendDailyUpdate}
                 className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-2xl text-lg font-semibold flex items-center space-x-2 transition-all duration-300 shadow-lg"
@@ -197,19 +316,70 @@ export default function FamilyPage() {
                 <span>Send Update</span>
               </button>
               
-              <button 
-                onClick={() => setShowAddFamily(true)}
+              <Link 
+                href="/family-setup"
                 className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-2xl text-lg font-semibold flex items-center space-x-2 transition-all duration-300 shadow-lg"
               >
                 <Plus className="h-5 w-5" />
-                <span>Add Family</span>
-              </button>
+                <span>Manage Family</span>
+              </Link>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-10">
+        {/* Active Emergency Alerts */}
+        {activeAlerts.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <Bell className="h-6 w-6 text-red-500" />
+              <h2 className="text-2xl font-bold text-gray-900">
+                Active Alerts ({activeAlerts.length})
+              </h2>
+            </div>
+            
+            <div className="space-y-4">
+              {activeAlerts.map(alert => (
+                <div key={alert.id} className={`border-2 rounded-2xl p-6 ${getSeverityColor(alert.severity)}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <AlertTriangle className="h-5 w-5" />
+                        <h3 className="text-lg font-semibold">{alert.medicationName}</h3>
+                        <span className="px-2 py-1 bg-white bg-opacity-50 rounded-full text-xs font-medium">
+                          {alert.severity.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="mb-2">{alert.alertMessage}</p>
+                      <p className="text-sm opacity-90">
+                        Scheduled for {alert.scheduledTime} • Missed {alert.missedTime}
+                      </p>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleAlertAction(alert.id, 'call')}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                      >
+                        <Phone className="h-4 w-4" />
+                        <span>Call {seniorName}</span>
+                      </button>
+                      <button
+                        onClick={() => handleAlertAction(alert.id, 'acknowledge')}
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Resolve</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Today's Status Overview */}
         <div className="bg-gradient-to-br from-white via-green-50/30 to-emerald-50/50 rounded-[2.5rem] shadow-2xl p-10 mb-12 border border-white/50">
           <div className="flex items-center justify-between mb-8">
@@ -219,12 +389,18 @@ export default function FamilyPage() {
               </div>
               <div>
                 <h2 className="text-4xl font-bold text-gray-800">Today's Health Status</h2>
-                <p className="text-gray-600 text-lg">{seniorName} is doing great today!</p>
+                <p className="text-gray-600 text-lg">
+                  {todayMissed === 0 ? `${seniorName} is doing great today!` : 
+                   todayMissed === 1 ? `${seniorName} missed 1 medication today` :
+                   `${seniorName} missed ${todayMissed} medications today`}
+                </p>
               </div>
             </div>
             
             <div className="text-right">
-              <div className="text-5xl font-bold text-green-600">{todayTaken}/{todayTotal}</div>
+              <div className={`text-5xl font-bold ${todayMissed === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {todayTaken}/{todayTotal}
+              </div>
               <div className="text-gray-600">Medications Taken</div>
             </div>
           </div>
@@ -270,43 +446,7 @@ export default function FamilyPage() {
           </div>
         </div>
 
-        {/* Weekly Adherence Chart */}
-        <div className="bg-gradient-to-br from-white via-purple-50/30 to-indigo-50/50 rounded-[2.5rem] shadow-2xl p-10 mb-12 border border-white/50">
-          <div className="flex items-center space-x-4 mb-8">
-            <div className="bg-gradient-to-br from-purple-400 to-indigo-600 w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg">
-              <TrendingUp className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h2 className="text-4xl font-bold text-gray-800">Weekly Progress</h2>
-              <p className="text-gray-600 text-lg">7-day medication adherence: {overallAdherence}%</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-4">
-            {weeklyReport.map((day, index) => (
-              <div key={index} className="text-center">
-                <div className="text-sm text-gray-600 mb-2">
-                  {new Date(day.date).toLocaleDateString('en', { weekday: 'short' })}
-                </div>
-                <div className={`w-full h-24 rounded-2xl flex items-end justify-center p-2 ${
-                  day.adherencePercentage >= 90 ? 'bg-green-200' :
-                  day.adherencePercentage >= 70 ? 'bg-yellow-200' : 'bg-red-200'
-                }`}>
-                  <div className={`w-full rounded-xl ${
-                    day.adherencePercentage >= 90 ? 'bg-green-500' :
-                    day.adherencePercentage >= 70 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`} style={{ height: `${day.adherencePercentage}%` }}>
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-gray-800 mt-2">
-                  {day.adherencePercentage}%
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Family Members */}
+        {/* Family Members - Updated with notification preferences */}
         <div className="bg-gradient-to-br from-white via-rose-50/30 to-pink-50/50 rounded-[2.5rem] shadow-2xl p-10 border border-white/50">
           <h2 className="text-4xl font-bold text-gray-800 mb-10 text-center">
             Family & Care Team
@@ -321,18 +461,28 @@ export default function FamilyPage() {
                   </div>
                   <h3 className="text-2xl font-bold text-gray-800 mb-2">{member.name}</h3>
                   <div className="text-rose-600 font-semibold">{member.relationship}</div>
-                  {member.isEmergencyContact && (
-                    <div className="inline-flex items-center space-x-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold mt-2">
-                      <Shield className="h-4 w-4" />
-                      <span>Emergency Contact</span>
-                    </div>
-                  )}
+                  
+                  <div className="flex flex-wrap gap-2 justify-center mt-3">
+                    {member.isEmergencyContact && (
+                      <span className="inline-flex items-center space-x-1 bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">
+                        <Shield className="h-3 w-3" />
+                        <span>Emergency</span>
+                      </span>
+                    )}
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      member.role === 'primary' ? 'bg-blue-100 text-blue-700' :
+                      member.role === 'secondary' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {member.role}
+                    </span>
+                  </div>
                 </div>
                 
                 <div className="space-y-3">
                   {member.phone && (
                     <button 
-                      onClick={() => callEmergencyContact(member)}
+                      onClick={() => window.location.href = `tel:${member.phone}`}
                       className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-2xl text-lg font-semibold flex items-center justify-center space-x-2 transition-all duration-300"
                     >
                       <Phone className="h-5 w-5" />
@@ -353,63 +503,6 @@ export default function FamilyPage() {
           </div>
         </div>
       </div>
-
-      {/* Add Family Member Modal */}
-      {showAddFamily && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Add Family Member</h3>
-            
-            <form className="space-y-4">
-              <input 
-                type="text" 
-                placeholder="Full Name"
-                className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
-              />
-              <input 
-                type="email" 
-                placeholder="Email Address"
-                className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
-              />
-              <input 
-                type="tel" 
-                placeholder="Phone Number"
-                className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
-              />
-              <select className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none">
-                <option>Relationship</option>
-                <option>Son</option>
-                <option>Daughter</option>
-                <option>Spouse</option>
-                <option>Doctor</option>
-                <option>Caregiver</option>
-                <option>Friend</option>
-              </select>
-              
-              <label className="flex items-center space-x-3">
-                <input type="checkbox" className="w-5 h-5" />
-                <span className="text-lg">Emergency Contact</span>
-              </label>
-              
-              <div className="flex space-x-4 pt-4">
-                <button 
-                  type="button"
-                  onClick={() => setShowAddFamily(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-3 px-6 rounded-xl text-lg font-semibold hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Add Member
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

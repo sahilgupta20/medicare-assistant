@@ -18,6 +18,7 @@ model User {
   role      UserRole @default(SENIOR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  familyMembers   FamilyMember[] @relation("FamilyMembers")
 
   // Relationships - remove medicationLogs for now
   medications     Medication[]
@@ -42,6 +43,7 @@ model Medication {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  emergencyAlerts EmergencyAlert[]
 
   // Relationships
   userId          String
@@ -94,6 +96,41 @@ model Caregiver {
 
   @@unique([caregiverId, patientId])
   @@map("caregivers")
+}
+
+model FamilyMember {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  relationship String
+  role      String   @default("secondary")
+  timezone  String   @default("Asia/Kolkata")
+  isEmergencyContact Boolean @default(false)
+  notificationPreferences String @default("{\"daily_summary\": true, \"missed_medication\": true, \"emergency_only\": false, \"preferred_method\": \"both\"}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seniorId  String?
+  senior    User?   @relation("FamilyMembers", fields: [seniorId], references: [id])
+
+  @@map("family_members")
+}
+
+model EmergencyAlert {
+  id              String    @id @default(cuid())
+  medicationId    String
+  alertType       String    @default("missed_dose")
+  severity        String    @default("medium")
+  message         String
+  escalationLevel Int       @default(1)
+  status          String    @default("active")
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+  
+  medication      Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@map("emergency_alerts")
 }
 
 enum UserRole {

@@ -3,7 +3,13 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Pill, Clock, Camera, Trash2, Edit, CheckCircle2, Loader2, Bell, BellOff } from 'lucide-react'
-import { NotificationService } from '../../lib/notifications'
+import { notificationService, NotificationService } from '../../lib/notifications'
+import { emergencyEscalationService } from '../../lib/emergency-escalation'
+import VoiceInterface from '../../components/VoiceInterface'
+import { voiceInterfaceService } from '../../lib/voice-interface'
+
+
+
 
 
 
@@ -52,6 +58,41 @@ export default function MedicationsPage() {
   checkNotificationPermission()
   testBrowserSupport()
 }, [])
+
+useEffect(() => { 
+  if (medications.length > 0) {
+    // Import the integration function
+    import('../../lib/voice-interface').then(({ integrateVoiceWithMedications }) => {
+      integrateVoiceWithMedications(medications, takenMedications);
+    });
+  }
+}, [medications, takenMedications]);
+
+
+
+// Add this useEffect to create a global test function
+
+// Add this as a NEW useEffect, don't replace existing ones
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    (window as any).testEmergencyEscalation = () => {
+      console.log('Starting emergency escalation test...');
+      emergencyEscalationService.reportMissedMedication(
+        'cmf56aanx0003unv4zzl88tqw',
+        'Blood Pressure Medicine', 
+        '10mg', 
+        '08:00'
+      );
+    };
+  }
+}, []);
+// Add this useEffect to your medications page
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    (window as any).escalationService = emergencyEscalationService;
+    console.log('Escalation service exposed to window');
+  }
+}, []);
 
   const fetchMedications = async () => {
     try {
@@ -131,22 +172,16 @@ const enableNotifications = async () => {
 }
 
 const scheduleAllReminders = () => {
+  console.log('🔔 Scheduling all reminders...')
   const notificationService = NotificationService.getInstance()
-  const newTimeouts = new Map<string, number>()
   
-  medications.forEach(med => {
-    med.times.split(',').forEach(time => {
-      const timeoutId = notificationService.scheduleMedicationReminder(
-        med.id,
-        med.name,
-        med.dosage,
-        time.trim()
-      )
-      newTimeouts.set(`${med.id}-${time}`, timeoutId)
-    })
-  })
+  // Clear existing timeouts map
+  setReminderTimeouts(new Map())
   
-  setReminderTimeouts(newTimeouts)
+  // Use the existing public method that already handles everything
+  notificationService.scheduleAllMedicationReminders(medications)
+  
+  console.log('✅ All reminders scheduled!')
 }
 
   const handleAddMedication = async (e: React.FormEvent) => {
@@ -201,43 +236,65 @@ const scheduleAllReminders = () => {
     }
   }
 
-  const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
-    try {
-      // Create a proper datetime for today at the scheduled time  
-      const scheduledDateTime = new Date()
-      const [hours, minutes] = scheduledTime.split(':').map(Number)
-      scheduledDateTime.setHours(hours, minutes, 0, 0)
+  // Replace your handleMarkTaken function with this fixed version:
 
-      console.log('🔍 Debug - Original time:', scheduledTime)
-      console.log('🔍 Debug - Created datetime:', scheduledDateTime.toISOString())
+const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
+  try {
+    // Create a proper datetime for today at the scheduled time  
+    const scheduledDateTime = new Date()
+    const [hours, minutes] = scheduledTime.split(':').map(Number)
+    scheduledDateTime.setHours(hours, minutes, 0, 0)
 
-      const response = await fetch('/api/medication-logs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          medicationId,
-          status: 'TAKEN',
-          scheduledFor: scheduledDateTime.toISOString()
-        })
+    console.log('🔍 Debug - Original time:', scheduledTime)
+    console.log('🔍 Debug - Created datetime:', scheduledDateTime.toISOString())
+
+    const response = await fetch('/api/medication-logs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        medicationId,
+        status: 'TAKEN',
+        scheduledFor: scheduledDateTime.toISOString()
       })
+    })
 
-      if (response.ok) {
-        const takenKey = `${medicationId}-${scheduledTime}`
-        console.log('✅ Marking as taken:', takenKey)
-        setTakenMedications(prev => new Set([...prev, takenKey]))
-        alert('✅ Medication marked as taken! Great job staying healthy!')
-      } else {
-        const errorData = await response.json()
-        console.error('API error:', errorData)
-        alert('❌ Something went wrong. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error logging medication:', error)
+    if (response.ok) {
+      const takenKey = `${medicationId}-${scheduledTime}` // FIXED: Properly declare takenKey
+      console.log('✅ Marking as taken:', takenKey)
+      setTakenMedications(prev => new Set([...prev, takenKey]))
+      
+      // Integrate with notification and emergency escalation systems
+      const notificationService = NotificationService.getInstance()
+      await notificationService.medicationTaken(medicationId)
+      await emergencyEscalationService?.medicationTaken(medicationId)
+      
+      console.log('🚨 Emergency escalation cancelled for:', medicationId)
+      
+      // Update voice interface with current medications
+      voiceInterfaceService.updateMedications(medications.flatMap(med => 
+        med.times.split(',').map(time => ({
+          id: `${med.id}-${time.trim()}`,
+          name: med.name,
+          dosage: med.dosage,
+          times: [time.trim()],
+          isTaken: takenMedications.has(`${med.id}-${time.trim()}`) || takenKey === `${med.id}-${time.trim()}`
+        }))
+      ));
+      
+      alert('✅ Medication marked as taken! Great job staying healthy!')
+    } else {
+      const errorData = await response.json()
+      console.error('API error:', errorData)
       alert('❌ Something went wrong. Please try again.')
     }
+    
+  } catch (error) {
+    console.error('Error logging medication:', error)
+    alert('❌ Something went wrong. Please try again.')
   }
+}
 
   const handleTimeToggle = (time: string) => {
     setFormData(prev => ({
@@ -317,7 +374,23 @@ const scheduleAllReminders = () => {
           </div>
         </div>
       </header>
+                
 
+
+<div className="max-w-7xl mx-auto px-6 pt-6">
+  <VoiceInterface 
+    medications={medications}
+    takenMedications={takenMedications}
+    onMedicationTaken={(medicationId) => {
+      // This integrates with your existing medication tracking
+      const time = medicationId.split('-')[1]; // Extract time from voice medication ID
+      const medId = medicationId.split('-')[0]; // Extract medication ID
+      if (time) {
+        handleMarkTaken(medId, time);
+      }
+    }}
+  />
+</div>
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Today's Medicine Schedule */}
         <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-[2.5rem] shadow-2xl p-10 mb-12 border border-white/50 relative overflow-hidden">

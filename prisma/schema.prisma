@@ -11,21 +11,52 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  phone     String?
-  role      UserRole @default(SENIOR)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  familyMembers   FamilyMember[] @relation("FamilyMembers")
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For credentials login
+  role          Role      @default(FAMILY)
+  isActive      Boolean   @default(true)
+  
+  // Profile information
+  phone         String?
+  timezone      String?   @default("Asia/Kolkata")
+  dateOfBirth   DateTime?
+  emergencyContact String?
+  
+  // Preferences
+  notificationPreferences Json?
+  privacySettings        Json?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
 
-  // Relationships - remove medicationLogs for now
-  medications     Medication[]
-  caregivers      Caregiver[] @relation("SeniorCaregivers")
-  patients        Caregiver[] @relation("CaregiverPatients")
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  medications   Medication[]
+  familyMembers FamilyMember[]
+  
+  // Medical records (if user is senior)
+  medicationLogs MedicationLog[]
+  emergencyAlerts EmergencyAlert[]
+  
+  // Family members for this senior user
+  familyMembersAsSenior FamilyMember[] @relation("SeniorFamilyMembers")
+
 
   @@map("users")
+}
+enum Role {
+  ADMIN       // System administrator - full access
+  SENIOR      // Primary user taking medications
+  CAREGIVER   // Professional caregiver - can manage medications
+  FAMILY      // Family member - view access and notifications
+  DOCTOR      // Healthcare provider - view reports
 }
 
 model Medication {
@@ -99,39 +130,90 @@ model Caregiver {
 }
 
 model FamilyMember {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  relationship String
-  role      String   @default("secondary")
-  timezone  String   @default("Asia/Kolkata")
-  isEmergencyContact Boolean @default(false)
-  notificationPreferences String @default("{\"daily_summary\": true, \"missed_medication\": true, \"emergency_only\": false, \"preferred_method\": \"both\"}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  seniorId  String?
-  senior    User?   @relation("FamilyMembers", fields: [seniorId], references: [id])
+  id                      String   @id @default(cuid())
+  name                    String
+  email                   String   @unique
+  phone                   String?
+  relationship            String
+  role                    String   // primary, secondary, observer
+  timezone                String   @default("Asia/Kolkata")
+  isEmergencyContact      Boolean  @default(false)
+  notificationPreferences String   // JSON string
+  
+  // Link to actual user account (optional)
+  userId                  String?
+  user                    User?    @relation(fields: [userId], references: [id])
+  
+  // Link to senior user
+  seniorId                String?
+  senior                  User?    @relation("SeniorFamilyMembers", fields: [seniorId], references: [id])
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   @@map("family_members")
 }
 
 model EmergencyAlert {
-  id              String    @id @default(cuid())
+  id              String      @id @default(cuid())
   medicationId    String
-  alertType       String    @default("missed_dose")
-  severity        String    @default("medium")
+  medicationName  String
+  alertType       String      @default("missed_dose")
+  severity        String      @default("medium")
   message         String
-  escalationLevel Int       @default(1)
-  status          String    @default("active")
-  createdAt       DateTime  @default(now())
+  escalationLevel Int         @default(1)
+  status          String      @default("active")
   resolvedAt      DateTime?
-  
-  medication      Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Add this relation field if it's missing
+  medication      Medication  @relation(fields: [medicationId], references: [id], onDelete: Cascade)
 
   @@map("emergency_alerts")
 }
+
+
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
 
 enum UserRole {
   SENIOR

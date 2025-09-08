@@ -1,8 +1,8 @@
-// src/app/family-setup/page.tsx - Family Member Registration
+// src/app/family-setup/page.tsx - Family Member Registration with Edit/Delete/Validation
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Phone, Mail, Users, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Phone, Mail, Users, Save, ArrowLeft, Edit3, X, Bell } from 'lucide-react';
 import Link from 'next/link';
 
 interface FamilyMember {
@@ -13,6 +13,7 @@ interface FamilyMember {
   email: string;
   role: 'primary' | 'secondary' | 'observer';
   timezone: string;
+  isEmergencyContact?: boolean;
   notificationPreferences: {
     daily_summary: boolean;
     missed_medication: boolean;
@@ -26,14 +27,18 @@ export default function FamilySetupPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [currentUser, setCurrentUser] = useState<{ role: string; id: string } | null>(null);
 
   const [newMember, setNewMember] = useState<FamilyMember>({
-    name: 'Ribhu gupta',
-    relationship: 'Son',
-    phone: '+91-8130870824',
-    email: 'sahilhunkgupta@gmail.com',
-    role: 'primary',
+    name: '',
+    relationship: '',
+    phone: '',
+    email: '',
+    role: 'secondary',
     timezone: 'Asia/Kolkata',
+    isEmergencyContact: false,
     notificationPreferences: {
       daily_summary: true,
       missed_medication: true,
@@ -41,6 +46,11 @@ export default function FamilySetupPage() {
       preferred_method: 'both'
     }
   });
+
+  // Mock current user - Replace with actual auth
+  useEffect(() => {
+    setCurrentUser({ role: 'admin', id: 'user123' });
+  }, []);
 
   useEffect(() => {
     fetchFamilyMembers();
@@ -60,44 +70,64 @@ export default function FamilySetupPage() {
     }
   };
 
+  // Form validation
+  const validateForm = (member: FamilyMember): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    
+    if (!member.name.trim()) errors.name = 'Name is required';
+    if (!member.relationship.trim()) errors.relationship = 'Relationship is required';
+    if (!member.phone.trim()) errors.phone = 'Phone number is required';
+    else if (!/^\+?[\d\s-()]+$/.test(member.phone)) errors.phone = 'Invalid phone number format';
+    if (!member.email.trim()) errors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(member.email)) errors.email = 'Invalid email format';
+    
+    return errors;
+  };
+
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Add validation
+    const errors = validateForm(newMember);
+    setFormErrors(errors);
+    
+    if (Object.keys(errors).length > 0) return;
+    
     setSaving(true);
 
     try {
-      const response = await fetch('/api/family-members', {
-        method: 'POST',
+      const url = editingMember ? `/api/family-members?id=${editingMember.id}` : '/api/family-members';
+      const method = editingMember ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newMember)
       });
 
       if (response.ok) {
         await fetchFamilyMembers();
-        setShowAddForm(false);
-        setNewMember({
-          name: '',
-          relationship: '',
-          phone: '',
-          email: '',
-          role: 'secondary',
-          timezone: 'Asia/Kolkata',
-          notificationPreferences: {
-            daily_summary: true,
-            missed_medication: true,
-            emergency_only: false,
-            preferred_method: 'both'
-          }
-        });
+        resetForm();
+        alert(editingMember ? 'Family member updated successfully!' : 'Family member added successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error || 'Failed to save family member'}`);
       }
     } catch (error) {
-      console.error('Error adding family member:', error);
+      console.error('Error saving family member:', error);
+      alert('Failed to save family member');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteMember = async (id: string) => {
-    if (!confirm('Remove this family member from notifications?')) return;
+    if (!currentUser || currentUser.role !== 'admin') {
+      alert('Only administrators can delete family members');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to remove this family member from notifications?')) return;
 
     try {
       const response = await fetch(`/api/family-members?id=${id}`, {
@@ -106,10 +136,48 @@ export default function FamilySetupPage() {
 
       if (response.ok) {
         await fetchFamilyMembers();
+        alert('Family member removed successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error || 'Failed to delete family member'}`);
       }
     } catch (error) {
       console.error('Error deleting family member:', error);
+      alert('Failed to delete family member');
     }
+  };
+
+  const handleEditMember = (member: FamilyMember) => {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.id !== member.id)) {
+      alert('You can only edit your own profile');
+      return;
+    }
+    
+    setEditingMember(member);
+    setNewMember({ ...member });
+    setFormErrors({});
+    setShowAddForm(true);
+  };
+
+  const resetForm = () => {
+    setNewMember({
+      name: '',
+      relationship: '',
+      phone: '',
+      email: '',
+      role: 'secondary',
+      timezone: 'Asia/Kolkata',
+      isEmergencyContact: false,
+      notificationPreferences: {
+        daily_summary: true,
+        missed_medication: true,
+        emergency_only: false,
+        preferred_method: 'both'
+      }
+    });
+    setFormErrors({});
+    setShowAddForm(false);
+    setEditingMember(null);
   };
 
   const testNotification = async (member: FamilyMember) => {
@@ -131,6 +199,10 @@ export default function FamilySetupPage() {
       alert('Failed to send test notification');
     }
   };
+
+  // Permission checks
+  const canAddMembers = currentUser?.role === 'admin';
+  const canDeleteMembers = currentUser?.role === 'admin';
 
   const relationshipOptions = [
     'Daughter', 'Son', 'Spouse', 'Sibling', 'Parent', 
@@ -172,17 +244,25 @@ export default function FamilySetupPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Family Setup</h1>
-                <p className="text-gray-600">Add family members for medication alerts</p>
+                <p className="text-gray-600">Manage family members for medication alerts</p>
               </div>
             </div>
             
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center space-x-2"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Add Family Member</span>
-            </button>
+            {canAddMembers && (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center space-x-2"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Add Family Member</span>
+              </button>
+            )}
+            
+            {!canAddMembers && (
+              <div className="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
+                Contact admin to add new members
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -199,12 +279,14 @@ export default function FamilySetupPage() {
               <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-600 mb-2">No family members added yet</h3>
               <p className="text-gray-500 mb-4">Add family members to receive medication alerts and updates</p>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg"
-              >
-                Add First Family Member
-              </button>
+              {canAddMembers && (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg"
+                >
+                  Add First Family Member
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
@@ -225,12 +307,11 @@ export default function FamilySetupPage() {
                       }`}>
                         {member.role}
                       </span>
-                      <button
-                        onClick={() => handleDeleteMember(member.id!)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {member.isEmergencyContact && (
+                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                          Emergency Contact
+                        </span>
+                      )}
                     </div>
                   </div>
                   
@@ -243,8 +324,9 @@ export default function FamilySetupPage() {
                       <Mail className="h-4 w-4" />
                       <span>{member.email}</span>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Timezone: {member.timezone}
+                    <div className="flex items-center space-x-3 text-gray-600">
+                      <Bell className="h-4 w-4" />
+                      <span className="text-sm">Timezone: {member.timezone}</span>
                     </div>
                   </div>
                   
@@ -266,30 +348,55 @@ export default function FamilySetupPage() {
                     </div>
                   </div>
                   
-                  <button
-                    onClick={() => testNotification(member)}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg text-sm font-medium"
-                  >
-                    Send Test Notification
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => testNotification(member)}
+                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg text-sm font-medium"
+                    >
+                      Send Test Notification
+                    </button>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditMember(member)}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm font-medium flex items-center justify-center space-x-1"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        <span>Edit</span>
+                      </button>
+                      
+                      {canDeleteMembers && (
+                        <button
+                          onClick={() => handleDeleteMember(member.id!)}
+                          className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium flex items-center justify-center space-x-1"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Add Family Member Form */}
+        {/* Add/Edit Family Member Form */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Add Family Member</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {editingMember ? 'Edit Family Member' : 'Add Family Member'}
+                  </h2>
                   <button 
-                    onClick={() => setShowAddForm(false)}
-                    className="text-gray-500 hover:text-gray-700 text-xl"
+                    onClick={resetForm}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
                   >
-                    ×
+                    <X className="h-5 w-5 text-gray-500" />
                   </button>
                 </div>
                 
@@ -304,9 +411,12 @@ export default function FamilySetupPage() {
                         required
                         value={newMember.name}
                         onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                        placeholder="e.g., Priya Sharma"
+                        className={`w-full p-3 border rounded-lg focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-500 ${
+                          formErrors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="e.g., Ribhu Gupta"
                       />
+                      {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
                     </div>
 
                     <div>
@@ -317,13 +427,16 @@ export default function FamilySetupPage() {
                         required
                         value={newMember.relationship}
                         onChange={(e) => setNewMember(prev => ({ ...prev, relationship: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        className={`w-full p-3 border rounded-lg focus:border-blue-500 focus:outline-none bg-white text-gray-900 ${
+                          formErrors.relationship ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       >
                         <option value="">Select relationship</option>
                         {relationshipOptions.map(rel => (
                           <option key={rel} value={rel}>{rel}</option>
                         ))}
                       </select>
+                      {formErrors.relationship && <p className="text-red-500 text-sm mt-1">{formErrors.relationship}</p>}
                     </div>
                   </div>
 
@@ -337,9 +450,12 @@ export default function FamilySetupPage() {
                         required
                         value={newMember.phone}
                         onChange={(e) => setNewMember(prev => ({ ...prev, phone: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        className={`w-full p-3 border rounded-lg focus:border-blue-500 focus:outline-none ${
+                          formErrors.phone ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="+91-9876543210"
                       />
+                      {formErrors.phone && <p className="text-red-500 text-sm mt-1">{formErrors.phone}</p>}
                     </div>
 
                     <div>
@@ -351,9 +467,12 @@ export default function FamilySetupPage() {
                         required
                         value={newMember.email}
                         onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        className={`w-full p-3 border rounded-lg focus:border-blue-500 focus:outline-none ${
+                          formErrors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="priya@email.com"
                       />
+                      {formErrors.email && <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>}
                     </div>
                   </div>
 
@@ -366,6 +485,7 @@ export default function FamilySetupPage() {
                         value={newMember.role}
                         onChange={(e) => setNewMember(prev => ({ ...prev, role: e.target.value as any }))}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        disabled={!canAddMembers}
                       >
                         <option value="primary">Primary Caregiver</option>
                         <option value="secondary">Secondary Contact</option>
@@ -405,7 +525,7 @@ export default function FamilySetupPage() {
                               daily_summary: e.target.checked 
                             } 
                           }))}
-                          className="w-4 h-4" 
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                         <span>Daily medication summary</span>
                       </label>
@@ -420,25 +540,11 @@ export default function FamilySetupPage() {
                               missed_medication: e.target.checked 
                             } 
                           }))}
-                          className="w-4 h-4" 
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                         <span>Missed medication alerts</span>
                       </label>
-                      <label className="flex items-center space-x-3">
-                        <input 
-                          type="checkbox" 
-                          checked={newMember.notificationPreferences.emergency_only}
-                          onChange={(e) => setNewMember(prev => ({ 
-                            ...prev, 
-                            notificationPreferences: { 
-                              ...prev.notificationPreferences, 
-                              emergency_only: e.target.checked 
-                            } 
-                          }))}
-                          className="w-4 h-4" 
-                        />
-                        <span>Emergency situations only</span>
-                      </label>
+                      
                     </div>
                   </div>
 
@@ -462,11 +568,26 @@ export default function FamilySetupPage() {
                       <option value="sms">SMS only</option>
                     </select>
                   </div>
+                  <div className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      id="isEmergencyContact"
+                      checked={newMember.isEmergencyContact || false}
+                      onChange={(e) => setNewMember(prev => ({ 
+                        ...prev, 
+                        isEmergencyContact: e.target.checked 
+                      }))}
+                      className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isEmergencyContact" className="text-sm font-medium text-gray-700">
+                      Emergency contact (receives urgent medication alerts)
+                    </label>
+                  </div>
 
                   <div className="flex space-x-4 pt-4">
                     <button 
                       type="button"
-                      onClick={() => setShowAddForm(false)}
+                      onClick={resetForm}
                       className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-medium hover:bg-gray-300"
                     >
                       Cancel
@@ -479,12 +600,12 @@ export default function FamilySetupPage() {
                       {saving ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Adding...
+                          {editingMember ? 'Updating...' : 'Adding...'}
                         </>
                       ) : (
                         <>
                           <Save className="h-4 w-4 mr-2" />
-                          Add Family Member
+                          {editingMember ? 'Update Family Member' : 'Add Family Member'}
                         </>
                       )}
                     </button>

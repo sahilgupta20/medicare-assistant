@@ -141,19 +141,26 @@ export default function FamilyPage() {
     const response = await fetch('/api/emergency-alerts');
     if (response.ok) {
       const alerts = await response.json();
-      setActiveAlerts(alerts.map(alert => ({
-        id: alert.id,
-        medicationId: alert.medicationId,
-        medicationName: alert.medication?.name || alert.medicationName,
-        scheduledTime: alert.createdAt,
-        missedTime: 'Recently',
-        severity: alert.severity,
-        escalationLevel: alert.escalationLevel,
-        alertMessage: alert.message
-      })));
+      
+      // Only show alerts that are still active (not resolved)
+      const activeAlertsOnly = alerts
+        .filter(alert => alert.status === 'active')
+        .map(alert => ({
+          id: alert.id,
+          medicationId: alert.medicationId,
+          medicationName: alert.medication?.name || 'Unknown Medication',
+          scheduledTime: new Date(alert.createdAt).toLocaleTimeString(),
+          missedTime: 'Recently',
+          severity: alert.severity,
+          alertType: alert.alertType,
+          alertMessage: alert.message
+        }));
+      
+      setActiveAlerts(activeAlertsOnly);
     }
   } catch (error) {
     console.error('Error fetching alerts:', error);
+    setActiveAlerts([]);
   }
 };
 
@@ -200,34 +207,43 @@ export default function FamilyPage() {
     }
   }
 
-  const handleAlertAction = async (alertId: string, action: 'acknowledge' | 'call' | 'escalate') => {
-    try {
-      const response = await fetch(`/api/emergency-alerts/${alertId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action })
-      })
+  // In your family dashboard, update the handleAlertAction function:
+const handleAlertAction = async (alertId: string, action: 'acknowledge' | 'call' | 'escalate') => {
+  try {
+    console.log(`Performing action: ${action} on alert: ${alertId}`);
+    
+    const response = await fetch(`/api/emergency-alerts/${alertId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
 
-      if (response.ok) {
-        if (action === 'acknowledge') {
-          // Remove alert from active list
-          setActiveAlerts(prev => prev.filter(alert => alert.id !== alertId))
-        } else if (action === 'call') {
-          // Find the alert and call the senior
-          const alert = activeAlerts.find(a => a.id === alertId)
-          if (alert) {
-            // You can integrate with your calling system here
-            alert('Calling Sahil about missed medication...')
-          }
-        }
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Alert action result:', result);
+      
+      if (action === 'acknowledge') {
+        // Remove alert from active list immediately
+        setActiveAlerts(prev => prev.filter(alert => alert.id !== alertId));
         
-        // Refresh data
-        fetchRealTimeData()
+        // Show success message
+        alert(`Alert resolved successfully. The family has acknowledged that the medication issue has been addressed.`);
+      } else if (action === 'call') {
+        // Initiate call action
+        alert('Calling Sahil about missed medication...');
+        // You could integrate with a calling system here
       }
-    } catch (error) {
-      console.error('Error handling alert action:', error)
+      
+      // Refresh alerts to get updated data
+      await fetchActiveAlerts();
+    } else {
+      alert('Failed to process alert action. Please try again.');
     }
+  } catch (error) {
+    console.error('Error handling alert action:', error);
+    alert('Error processing alert. Please try again.');
   }
+};
 
   const sendDailyUpdate = async () => {
     try {

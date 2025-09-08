@@ -2,16 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Plus, Pill, Clock, Camera, Trash2, Edit, CheckCircle2, Loader2, Bell, BellOff } from 'lucide-react'
+import { ArrowLeft, Plus, Pill, Clock, Camera, Trash2, Edit3, CheckCircle2, Loader2, Bell, BellOff, Save, X } from 'lucide-react'
 import { notificationService, NotificationService } from '../../lib/notifications'
 import { emergencyEscalationService } from '../../lib/emergency-escalation'
 import VoiceInterface from '../../components/VoiceInterface'
 import { voiceInterfaceService } from '../../lib/voice-interface'
-
-
-
-
-
 
 type Medication = {
   id: string
@@ -22,6 +17,9 @@ type Medication = {
   color?: string
   shape?: string
   photoUrl?: string
+  startDate?: string
+  endDate?: string
+  isActive?: boolean
 }
 
 type MedicationFormData = {
@@ -31,6 +29,15 @@ type MedicationFormData = {
   color: string
   shape: string
   times: string[]
+  startDate: string
+  endDate: string
+  isActive: boolean
+}
+
+interface CurrentUser {
+  id: string
+  role: 'admin' | 'caregiver' | 'family' | 'senior'
+  name: string
 }
 
 export default function MedicationsPage() {
@@ -42,6 +49,11 @@ export default function MedicationsPage() {
   const [takenMedications, setTakenMedications] = useState<Set<string>>(new Set())
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [reminderTimeouts, setReminderTimeouts] = useState<Map<string, number>>(new Map())
+  
+  // Role-based access control
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [editingMedication, setEditingMedication] = useState<Medication | null>(null)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   const [formData, setFormData] = useState<MedicationFormData>({
     name: '',
@@ -49,50 +61,65 @@ export default function MedicationsPage() {
     description: '',
     color: '',
     shape: '',
-    times: []
+    times: [],
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    isActive: true
   })
 
+  // Mock current user - Replace with actual auth
   useEffect(() => {
-  fetchMedications()
-  fetchTakenMedications()
-  checkNotificationPermission()
-  testBrowserSupport()
-}, [])
+    setCurrentUser({ 
+      id: 'user123', 
+      role: 'admin', // Change this to test different roles: 'admin', 'caregiver', 'family', 'senior'
+      name: 'Sahil'
+    })
+  }, [])
 
-useEffect(() => { 
-  if (medications.length > 0) {
-    // Import the integration function
-    import('../../lib/voice-interface').then(({ integrateVoiceWithMedications }) => {
-      integrateVoiceWithMedications(medications, takenMedications);
-    });
+  // Permission checks based on user role
+  const permissions = {
+    canAdd: currentUser?.role === 'admin' || currentUser?.role === 'caregiver' || currentUser?.role === 'senior',
+    canEdit: currentUser?.role === 'admin' || currentUser?.role === 'caregiver' || currentUser?.role === 'senior',
+    canDelete: currentUser?.role === 'admin' || currentUser?.role === 'caregiver',
+    canView: true, // Everyone can view
+    canMarkTaken: currentUser?.role === 'admin' || currentUser?.role === 'caregiver' || currentUser?.role === 'senior'
   }
-}, [medications, takenMedications]);
 
+  useEffect(() => {
+    fetchMedications()
+    fetchTakenMedications()
+    checkNotificationPermission()
+    testBrowserSupport()
+  }, [])
 
+  useEffect(() => { 
+    if (medications.length > 0) {
+      import('../../lib/voice-interface').then(({ integrateVoiceWithMedications }) => {
+        integrateVoiceWithMedications(medications, takenMedications);
+      });
+    }
+  }, [medications, takenMedications]);
 
-// Add this useEffect to create a global test function
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).testEmergencyEscalation = () => {
+        console.log('Starting emergency escalation test...');
+        emergencyEscalationService.reportMissedMedication(
+          'cmf56aanx0003unv4zzl88tqw',
+          'Blood Pressure Medicine', 
+          '10mg', 
+          '08:00'
+        );
+      };
+    }
+  }, []);
 
-// Add this as a NEW useEffect, don't replace existing ones
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    (window as any).testEmergencyEscalation = () => {
-      console.log('Starting emergency escalation test...');
-      emergencyEscalationService.reportMissedMedication(
-        'cmf56aanx0003unv4zzl88tqw',
-        'Blood Pressure Medicine', 
-        '10mg', 
-        '08:00'
-      );
-    };
-  }
-}, []);
-// Add this useEffect to your medications page
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    (window as any).escalationService = emergencyEscalationService;
-    console.log('Escalation service exposed to window');
-  }
-}, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).escalationService = emergencyEscalationService;
+      console.log('Escalation service exposed to window');
+    }
+  }, []);
 
   const fetchMedications = async () => {
     try {
@@ -115,7 +142,6 @@ useEffect(() => {
         const logs = await response.json()
         const today = new Date().toDateString()
         
-        // Get logs from today that were marked as taken
         const todayTaken = logs
           .filter((log: any) => {
             const logDate = new Date(log.scheduledFor).toDateString()
@@ -123,11 +149,11 @@ useEffect(() => {
           })
           .map((log: any) => {
             const scheduledDate = new Date(log.scheduledFor)
-            const timeString = scheduledDate.toTimeString().slice(0, 5) // "HH:MM" format
+            const timeString = scheduledDate.toTimeString().slice(0, 5)
             return `${log.medicationId}-${timeString}`
           })
         
-        console.log('Today taken medications:', todayTaken) // Debug log
+        console.log('Today taken medications:', todayTaken)
         setTakenMedications(new Set(todayTaken))
       }
     } catch (error) {
@@ -136,62 +162,87 @@ useEffect(() => {
   }
 
   const checkNotificationPermission = () => {
-  if ('Notification' in window) {
-    setNotificationsEnabled(Notification.permission === 'granted')
-  }
-}
-
-const testBrowserSupport = () => {
-  console.log('🌐 Browser support check:')
-  console.log('- Notifications supported:', 'Notification' in window)
-  console.log('- Current permission:', Notification.permission)
-  console.log('- Service Worker supported:', 'serviceWorker' in navigator)
-}
-
-const enableNotifications = async () => {
-  console.log('Bell button clicked!') // Debug 
-  
-  try {
-    console.log('📋 Current permission:', Notification.permission)
-    const notificationService = NotificationService.getInstance()
-    console.log(' NotificationService created') // Debug 
-    
-    const granted = await notificationService.requestPermission()
-    console.log(' Permission result:', granted) // Debug 
-    
-    setNotificationsEnabled(granted)
-    
-    if (granted) {
-      scheduleAllReminders()
-      await notificationService.testNotification()
-      console.log(' Test notification should have appeared') // Debug 
+    if ('Notification' in window) {
+      setNotificationsEnabled(Notification.permission === 'granted')
     }
-  } catch (error) {
-    console.error(' Error in enableNotifications:', error)
   }
-}
 
-const scheduleAllReminders = () => {
-  console.log('🔔 Scheduling all reminders...')
-  const notificationService = NotificationService.getInstance()
-  
-  // Clear existing timeouts map
-  setReminderTimeouts(new Map())
-  
-  // Use the existing public method that already handles everything
-  notificationService.scheduleAllMedicationReminders(medications)
-  
-  console.log('✅ All reminders scheduled!')
-}
+  const testBrowserSupport = () => {
+    console.log('Browser support check:')
+    console.log('- Notifications supported:', 'Notification' in window)
+    console.log('- Current permission:', Notification.permission)
+    console.log('- Service Worker supported:', 'serviceWorker' in navigator)
+  }
+
+  const enableNotifications = async () => {
+    console.log('Bell button clicked!')
+    
+    try {
+      console.log('Current permission:', Notification.permission)
+      const notificationService = NotificationService.getInstance()
+      console.log('NotificationService created')
+      
+      const granted = await notificationService.requestPermission()
+      console.log('Permission result:', granted)
+      
+      setNotificationsEnabled(granted)
+      
+      if (granted) {
+        scheduleAllReminders()
+        await notificationService.testNotification()
+        console.log('Test notification should have appeared')
+      }
+    } catch (error) {
+      console.error('Error in enableNotifications:', error)
+    }
+  }
+
+  const scheduleAllReminders = () => {
+    console.log('Scheduling all reminders...')
+    const notificationService = NotificationService.getInstance()
+    
+    setReminderTimeouts(new Map())
+    notificationService.scheduleAllMedicationReminders(medications)
+    console.log('All reminders scheduled!')
+  }
+
+  // Form validation
+  const validateForm = (medication: MedicationFormData): Record<string, string> => {
+    const errors: Record<string, string> = {}
+    
+    if (!medication.name.trim()) errors.name = 'Medication name is required'
+    if (!medication.dosage.trim()) errors.dosage = 'Dosage is required'
+    if (medication.times.length === 0) errors.times = 'At least one time is required'
+    if (!medication.startDate) errors.startDate = 'Start date is required'
+    
+    return errors
+  }
 
   const handleAddMedication = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.dosage) return
+    
+    if (!permissions.canAdd && !editingMedication) {
+      alert('You do not have permission to add medications')
+      return
+    }
+    
+    if (!permissions.canEdit && editingMedication) {
+      alert('You do not have permission to edit medications')
+      return
+    }
+
+    const errors = validateForm(formData)
+    setFormErrors(errors)
+    
+    if (Object.keys(errors).length > 0) return
 
     setSubmitting(true)
     try {
-      const response = await fetch('/api/medications', {
-        method: 'POST',
+      const url = editingMedication ? `/api/medications?id=${editingMedication.id}` : '/api/medications'
+      const method = editingMedication ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -203,25 +254,27 @@ const scheduleAllReminders = () => {
 
       if (response.ok) {
         await fetchMedications()
-        setShowAddForm(false)
-        setFormData({
-          name: '',
-          dosage: '',
-          description: '',
-          color: '',
-          shape: '',
-          times: []
-        })
+        resetForm()
+        alert(editingMedication ? 'Medication updated successfully!' : 'Medication added successfully!')
+      } else {
+        const errorData = await response.json()
+        alert(`Error: ${errorData.error || 'Failed to save medication'}`)
       }
     } catch (error) {
-      console.error('Error adding medication:', error)
+      console.error('Error saving medication:', error)
+      alert('Failed to save medication')
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDeleteMedication = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this medication?')) return
+    if (!permissions.canDelete) {
+      alert('You do not have permission to delete medications')
+      return
+    }
+
+    if (!confirm('Are you sure you want to remove this medication? This action cannot be undone.')) return
 
     try {
       const response = await fetch(`/api/medications?id=${id}`, {
@@ -230,71 +283,115 @@ const scheduleAllReminders = () => {
 
       if (response.ok) {
         await fetchMedications()
+        alert('Medication deleted successfully!')
+      } else {
+        const errorData = await response.json()
+        alert(`Error: ${errorData.error || 'Failed to delete medication'}`)
       }
     } catch (error) {
       console.error('Error deleting medication:', error)
+      alert('Failed to delete medication')
     }
   }
 
-  // Replace your handleMarkTaken function with this fixed version:
-
-const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
-  try {
-    // Create a proper datetime for today at the scheduled time  
-    const scheduledDateTime = new Date()
-    const [hours, minutes] = scheduledTime.split(':').map(Number)
-    scheduledDateTime.setHours(hours, minutes, 0, 0)
-
-    console.log('🔍 Debug - Original time:', scheduledTime)
-    console.log('🔍 Debug - Created datetime:', scheduledDateTime.toISOString())
-
-    const response = await fetch('/api/medication-logs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        medicationId,
-        status: 'TAKEN',
-        scheduledFor: scheduledDateTime.toISOString()
-      })
-    })
-
-    if (response.ok) {
-      const takenKey = `${medicationId}-${scheduledTime}` // FIXED: Properly declare takenKey
-      console.log('✅ Marking as taken:', takenKey)
-      setTakenMedications(prev => new Set([...prev, takenKey]))
-      
-      // Integrate with notification and emergency escalation systems
-      const notificationService = NotificationService.getInstance()
-      await notificationService.medicationTaken(medicationId)
-      await emergencyEscalationService?.medicationTaken(medicationId)
-      
-      console.log('🚨 Emergency escalation cancelled for:', medicationId)
-      
-      // Update voice interface with current medications
-      voiceInterfaceService.updateMedications(medications.flatMap(med => 
-        med.times.split(',').map(time => ({
-          id: `${med.id}-${time.trim()}`,
-          name: med.name,
-          dosage: med.dosage,
-          times: [time.trim()],
-          isTaken: takenMedications.has(`${med.id}-${time.trim()}`) || takenKey === `${med.id}-${time.trim()}`
-        }))
-      ));
-      
-      alert('✅ Medication marked as taken! Great job staying healthy!')
-    } else {
-      const errorData = await response.json()
-      console.error('API error:', errorData)
-      alert('❌ Something went wrong. Please try again.')
+  const handleEditMedication = (medication: Medication) => {
+    if (!permissions.canEdit) {
+      alert('You do not have permission to edit medications')
+      return
     }
     
-  } catch (error) {
-    console.error('Error logging medication:', error)
-    alert('❌ Something went wrong. Please try again.')
+    setEditingMedication(medication)
+    setFormData({
+      name: medication.name,
+      dosage: medication.dosage,
+      description: medication.description || '',
+      color: medication.color || '',
+      shape: medication.shape || '',
+      times: medication.times.split(',').map(t => t.trim()),
+      startDate: medication.startDate || new Date().toISOString().split('T')[0],
+      endDate: medication.endDate || '',
+      isActive: medication.isActive !== undefined ? medication.isActive : true
+    })
+    setFormErrors({})
+    setShowAddForm(true)
   }
-}
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      dosage: '',
+      description: '',
+      color: '',
+      shape: '',
+      times: [],
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: '',
+      isActive: true
+    })
+    setFormErrors({})
+    setShowAddForm(false)
+    setEditingMedication(null)
+  }
+
+  const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
+    if (!permissions.canMarkTaken) {
+      alert('You do not have permission to mark medications as taken')
+      return
+    }
+
+    try {
+      const scheduledDateTime = new Date()
+      const [hours, minutes] = scheduledTime.split(':').map(Number)
+      scheduledDateTime.setHours(hours, minutes, 0, 0)
+
+      console.log('Debug - Original time:', scheduledTime)
+      console.log('Debug - Created datetime:', scheduledDateTime.toISOString())
+
+      const response = await fetch('/api/medication-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          medicationId,
+          status: 'TAKEN',
+          scheduledFor: scheduledDateTime.toISOString()
+        })
+      })
+
+      if (response.ok) {
+        const takenKey = `${medicationId}-${scheduledTime}`
+        console.log('Marking as taken:', takenKey)
+        setTakenMedications(prev => new Set([...prev, takenKey]))
+        
+        const notificationService = NotificationService.getInstance()
+        await notificationService.medicationTaken(medicationId)
+        await emergencyEscalationService?.medicationTaken(medicationId)
+        
+        console.log('Emergency escalation cancelled for:', medicationId)
+        
+        voiceInterfaceService.updateMedications(medications.flatMap(med => 
+          med.times.split(',').map(time => ({
+            id: `${med.id}-${time.trim()}`,
+            name: med.name,
+            dosage: med.dosage,
+            times: [time.trim()],
+            isTaken: takenMedications.has(`${med.id}-${time.trim()}`) || takenKey === `${med.id}-${time.trim()}`
+          }))
+        ))
+        
+        alert('Medication marked as taken! Great job staying healthy!')
+      } else {
+        const errorData = await response.json()
+        console.error('API error:', errorData)
+        alert('Something went wrong. Please try again.')
+      }
+      
+    } catch (error) {
+      console.error('Error logging medication:', error)
+      alert('Something went wrong. Please try again.')
+    }
+  }
 
   const handleTimeToggle = (time: string) => {
     setFormData(prev => ({
@@ -345,7 +442,12 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-rose-600 to-purple-600 bg-clip-text text-transparent">
                     My Medicine Cabinet
                   </h1>
-                  <p className="text-gray-600 text-lg">Taking care of yourself today, {userName}</p>
+                  <p className="text-gray-600 text-lg">
+                    {currentUser?.role === 'family' ? 'View medications and schedules' : `Taking care of yourself today, ${userName}`}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Logged in as: {currentUser?.name} ({currentUser?.role})
+                  </p>
                 </div>
               </div>
             </div>
@@ -363,34 +465,40 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                 {notificationsEnabled ? <Bell className="h-6 w-6" /> : <BellOff className="h-6 w-6" />}
               </button>
               
-              <button 
-                onClick={() => setShowAddForm(true)}
-                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl text-xl font-semibold flex items-center space-x-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 group"
-              >
-                <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
-                <span>Add New Medicine</span>
-              </button>
+              {permissions.canAdd && (
+                <button 
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl text-xl font-semibold flex items-center space-x-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 group"
+                >
+                  <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
+                  <span>Add New Medicine</span>
+                </button>
+              )}
+              
+              {!permissions.canAdd && (
+                <div className="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
+                  View-only access
+                </div>
+              )}
             </div>
           </div>
         </div>
       </header>
-                
 
+      <div className="max-w-7xl mx-auto px-6 pt-6">
+        <VoiceInterface 
+          medications={medications}
+          takenMedications={takenMedications}
+          onMedicationTaken={(medicationId) => {
+            const time = medicationId.split('-')[1]
+            const medId = medicationId.split('-')[0]
+            if (time) {
+              handleMarkTaken(medId, time)
+            }
+          }}
+        />
+      </div>
 
-<div className="max-w-7xl mx-auto px-6 pt-6">
-  <VoiceInterface 
-    medications={medications}
-    takenMedications={takenMedications}
-    onMedicationTaken={(medicationId) => {
-      // This integrates with your existing medication tracking
-      const time = medicationId.split('-')[1]; // Extract time from voice medication ID
-      const medId = medicationId.split('-')[0]; // Extract medication ID
-      if (time) {
-        handleMarkTaken(medId, time);
-      }
-    }}
-  />
-</div>
       <div className="max-w-7xl mx-auto px-6 py-10">
         {/* Today's Medicine Schedule */}
         <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-[2.5rem] shadow-2xl p-10 mb-12 border border-white/50 relative overflow-hidden">
@@ -460,13 +568,17 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                               <CheckCircle2 className="h-6 w-6" />
                               <span>Taken!</span>
                             </div>
-                          ) : (
+                          ) : permissions.canMarkTaken ? (
                             <button 
                               onClick={() => handleMarkTaken(med.id, time)}
                               className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 shadow-lg transform hover:scale-105"
                             >
                               I took this
                             </button>
+                          ) : (
+                            <div className="bg-gray-300 text-gray-600 px-8 py-4 rounded-2xl text-lg font-semibold">
+                              View Only
+                            </div>
                           )}
                         </div>
                       </div>
@@ -499,15 +611,24 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                     index % 2 === 0 ? 'border-rose-200 hover:border-rose-300' : 'border-emerald-200 hover:border-emerald-300'
                   }`}>
                     <div className="absolute top-4 right-4 flex space-x-2">
-                      <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-300">
-                        <Edit className="h-5 w-5" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteMedication(med.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all duration-300"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
+                      {permissions.canEdit && (
+                        <button 
+                          onClick={() => handleEditMedication(med)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-300"
+                          title="Edit medication"
+                        >
+                          <Edit3 className="h-5 w-5" />
+                        </button>
+                      )}
+                      {permissions.canDelete && (
+                        <button 
+                          onClick={() => handleDeleteMedication(med.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all duration-300"
+                          title="Delete medication"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      )}
                     </div>
                     
                     <div className="mb-8">
@@ -543,9 +664,11 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                     <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
                       <Camera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                       <p className="text-gray-500">Add photo of medication</p>
-                      <button className="mt-2 text-blue-600 hover:text-blue-700 font-medium">
-                        Take Photo
-                      </button>
+                      {permissions.canEdit && (
+                        <button className="mt-2 text-blue-600 hover:text-blue-700 font-medium">
+                          Take Photo
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -554,18 +677,20 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
           </div>
         </div>
 
-        {/* Add New Medication Form */}
+        {/* Add/Edit New Medication Form */}
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-8">
                 <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900">Add New Medication</h2>
+                  <h2 className="text-3xl font-bold text-gray-900">
+                    {editingMedication ? 'Edit Medication' : 'Add New Medication'}
+                  </h2>
                   <button 
-                    onClick={() => setShowAddForm(false)}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    onClick={resetForm}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
                   >
-                    ×
+                    <X className="h-5 w-5 text-gray-500" />
                   </button>
                 </div>
                 
@@ -579,9 +704,12 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                      className={`w-full p-4 text-lg border-2 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-500 ${
+                        formErrors.name ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="e.g., Blood Pressure Medicine"
                     />
+                    {formErrors.name && <p className="text-red-500 text-sm mt-1">{formErrors.name}</p>}
                   </div>
 
                   <div>
@@ -593,9 +721,12 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                       required
                       value={formData.dosage}
                       onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
-                      className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                      className={`w-full p-4 text-lg border-2 rounded-xl focus:border-blue-500 focus:outline-none ${
+                        formErrors.dosage ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="e.g., 10mg, 1 tablet"
                     />
+                    {formErrors.dosage && <p className="text-red-500 text-sm mt-1">{formErrors.dosage}</p>}
                   </div>
 
                   <div>
@@ -605,7 +736,7 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                     <textarea 
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                      className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-gray-900 placeholder-gray-500"
                       rows={3}
                       placeholder="e.g., Take with food, morning only"
                     />
@@ -641,7 +772,7 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
 
                   <div>
                     <label className="block text-xl font-medium text-gray-700 mb-2">
-                      When to take (select times)
+                      When to take (select times) *
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {['06:00', '08:00', '12:00', '18:00', '20:00', '22:00'].map(time => (
@@ -658,12 +789,56 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                         </label>
                       ))}
                     </div>
+                    {formErrors.times && <p className="text-red-500 text-sm mt-1">{formErrors.times}</p>}
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xl font-medium text-gray-700 mb-2">
+                        Start Date *
+                      </label>
+                      <input 
+                        type="date" 
+                        required
+                        value={formData.startDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                        className={`w-full p-4 text-lg border-2 rounded-xl focus:border-blue-500 focus:outline-none ${
+                          formErrors.startDate ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                      />
+                      {formErrors.startDate && <p className="text-red-500 text-sm mt-1">{formErrors.startDate}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xl font-medium text-gray-700 mb-2">
+                        End Date (optional)
+                      </label>
+                      <input 
+                        type="date" 
+                        value={formData.endDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                        className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <input 
+                      type="checkbox" 
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="isActive" className="text-xl font-medium text-gray-700">
+                      Active medication
+                    </label>
                   </div>
 
                   <div className="flex space-x-4 pt-6">
                     <button 
                       type="button"
-                      onClick={() => setShowAddForm(false)}
+                      onClick={resetForm}
                       className="flex-1 bg-gray-300 text-gray-700 py-4 px-6 rounded-xl text-xl font-semibold hover:bg-gray-400 transition-colors"
                     >
                       Cancel
@@ -676,10 +851,13 @@ const handleMarkTaken = async (medicationId: string, scheduledTime: string) => {
                       {submitting ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                          Adding...
+                          {editingMedication ? 'Updating...' : 'Adding...'}
                         </>
                       ) : (
-                        'Add Medication'
+                        <>
+                          <Save className="h-5 w-5 mr-2" />
+                          {editingMedication ? 'Update Medication' : 'Add Medication'}
+                        </>
                       )}
                     </button>
                   </div>

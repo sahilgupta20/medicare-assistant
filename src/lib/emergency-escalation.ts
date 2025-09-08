@@ -346,6 +346,10 @@ public async testEscalation() {
   }
 
   private isInQuietHours(member: FamilyMember): boolean {
+    const quietHours = member.notificationPreferences?.quietHours || {
+    start: "22:00",
+    end: "07:00"
+  }
     const now = new Date();
     const currentTime = now.getHours() * 100 + now.getMinutes();
     

@@ -1,4 +1,3 @@
-// src/app/family/page.tsx - UPDATED to connect with real medication data
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -20,7 +19,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 
-// Types matching your existing medication system
+
 type MedicationStatus = {
   id: string
   medicationName: string
@@ -28,7 +27,7 @@ type MedicationStatus = {
   scheduledTime: string
   status: 'taken' | 'missed' | 'pending'
   takenAt?: Date
-  missedSince?: string // How long ago it was missed
+  missedSince?: string 
 }
 
 type ActiveAlert = {
@@ -59,7 +58,7 @@ type FamilyMember = {
 }
 
 export default function FamilyPage() {
-  const [seniorName] = useState("Sahil")
+  const [seniorName] = useState("John")
   const [todayStatus, setTodayStatus] = useState<MedicationStatus[]>([])
   const [activeAlerts, setActiveAlerts] = useState<ActiveAlert[]>([])
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([])
@@ -69,7 +68,7 @@ export default function FamilyPage() {
   useEffect(() => {
     fetchRealTimeData()
     
-    // Set up real-time polling every 30 seconds
+
     const interval = setInterval(() => {
       fetchRealTimeData()
     }, 30000)
@@ -94,7 +93,6 @@ export default function FamilyPage() {
 
   const fetchTodayMedicationStatus = async () => {
     try {
-      // Connect to your existing medication API
       const [medicationsResponse, logsResponse] = await Promise.all([
         fetch('/api/medications'),
         fetch('/api/medication-logs')
@@ -106,7 +104,6 @@ export default function FamilyPage() {
         
         const today = new Date().toDateString()
         
-        // Transform your existing data into family dashboard format
         const todayMedications = medications.flatMap((med: any) => 
           med.times.split(',').map((time: string) => {
             const medicationKey = `${med.id}-${time.trim()}`
@@ -132,7 +129,6 @@ export default function FamilyPage() {
       }
     } catch (error) {
       console.error('Error fetching medication status:', error)
-      // Keep existing mock data as fallback
     }
   }
 
@@ -142,7 +138,6 @@ export default function FamilyPage() {
     if (response.ok) {
       const alerts = await response.json();
       
-      // Only show alerts that are still active (not resolved)
       const activeAlertsOnly = alerts
         .filter(alert => alert.status === 'active')
         .map(alert => ({
@@ -207,7 +202,7 @@ export default function FamilyPage() {
     }
   }
 
-  // In your family dashboard, update the handleAlertAction function:
+  // family dashboardup - date the handleAlertAction function:
 const handleAlertAction = async (alertId: string, action: 'acknowledge' | 'call' | 'escalate') => {
   try {
     console.log(`Performing action: ${action} on alert: ${alertId}`);
@@ -223,18 +218,16 @@ const handleAlertAction = async (alertId: string, action: 'acknowledge' | 'call'
       console.log('Alert action result:', result);
       
       if (action === 'acknowledge') {
-        // Remove alert from active list immediately
         setActiveAlerts(prev => prev.filter(alert => alert.id !== alertId));
         
-        // Show success message
+  
         alert(`Alert resolved successfully. The family has acknowledged that the medication issue has been addressed.`);
       } else if (action === 'call') {
-        // Initiate call action
         alert('Calling Sahil about missed medication...');
-        // You could integrate with a calling system here
+
       }
       
-      // Refresh alerts to get updated data
+ 
       await fetchActiveAlerts();
     } else {
       alert('Failed to process alert action. Please try again.');

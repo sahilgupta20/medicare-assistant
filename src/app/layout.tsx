@@ -52,7 +52,11 @@ export default function RootLayout({
         <link rel="icon" href="/icon-192.png" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className={`${inter.className} bg-gray-50 min-h-screen`}>
+      {/* ADDED: suppressHydrationWarning to ignore browser extension attributes */}
+      <body 
+        className={`${inter.className} bg-gray-50 min-h-screen`}
+        suppressHydrationWarning={true}
+      >
         <div className="min-h-screen flex flex-col">
           <main className="flex-1">
             {children}

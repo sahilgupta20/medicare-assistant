@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       `
     });
 
-    console.log(`✅ Gmail sent successfully to ${familyMember.name}`);
+    console.log(`Gmail sent successfully to ${familyMember.name}`);
     
     return NextResponse.json({ 
       success: true, 

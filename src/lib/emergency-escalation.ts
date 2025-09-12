@@ -1,4 +1,3 @@
-// src/lib/emergency-escalation.ts - FIXED VERSION
 "use client";
 
 interface FamilyMember {
@@ -71,7 +70,7 @@ class EmergencyEscalationService {
     {
       level: 4,
       name: "Emergency Escalation", 
-      delayMinutes: 120,
+      delayMinutes: 1.5,
       actions: ["emergency_notification", "phone_call", "sms_alert"],
       recipients: ["emergency", "all"]
     }
@@ -82,7 +81,7 @@ class EmergencyEscalationService {
    console.log('Emergency escalation service initialized - will load family from database when needed');
   }
 
-  // Load family members from database with proper error handling
+  // Load family members from database with  error handling
   private async loadFamilyMembersFromDatabase(): Promise<FamilyMember[]> {
   try {
     console.log('Loading family members from database...');
@@ -128,10 +127,10 @@ class EmergencyEscalationService {
   }
   
   console.log('No family members found in database');
-  return []; // Return empty array instead of hardcoded fallback
+  return []; 
 }
 
-// Add this method inside the EmergencyEscalationService class
+
 public async testEscalation() {
   console.log('Testing escalation with database family members...');
   await this.reportMissedMedication(
@@ -159,16 +158,16 @@ public async testEscalation() {
 
       if (response.ok) {
         const alert = await response.json();
-        console.log('✅ Emergency alert created in database:', alert.id);
+        console.log(' Emergency alert created in database:', alert.id);
         return alert;
       }
     } catch (error) {
-      console.error('❌ Failed to create emergency alert:', error);
+      console.error(' Failed to create emergency alert:', error);
     }
   }
 
   async reportMissedMedication(medicationId: string, medicationName: string, dosage: string, scheduledTime: string) {
-    console.log(`🚨 Medication missed: ${medicationName} at ${scheduledTime}`);
+    console.log(` Medication missed: ${medicationName} at ${scheduledTime}`);
 
     const missedMed: MissedMedication = {
       medicationId,
@@ -187,7 +186,7 @@ public async testEscalation() {
     const missedMed = this.missedMedications.get(medicationId);
     if (!missedMed) return;
 
-    console.log(`📈 Starting escalation for ${missedMed.medicationName}`);
+    console.log(` Starting escalation for ${missedMed.medicationName}`);
     await this.executeEscalationLevel(medicationId, 1);
   }
 
@@ -197,7 +196,7 @@ public async testEscalation() {
     
     if (!missedMed || !escalationLevel) return;
 
-    console.log(`⚡ Executing escalation level ${level}: ${escalationLevel.name} for ${missedMed.medicationName}`);
+    console.log(` Executing escalation level ${level}: ${escalationLevel.name} for ${missedMed.medicationName}`);
 
     missedMed.attemptCount = level;
     missedMed.lastReminderAt = new Date();
@@ -214,7 +213,7 @@ public async testEscalation() {
       const nextLevel = this.escalationLevels[level];
       const delayMs = nextLevel.delayMinutes * 60 * 1000;
 
-      console.log(`⏰ Scheduling next escalation level ${level + 1} in ${nextLevel.delayMinutes} minutes`);
+      console.log(` Scheduling next escalation level ${level + 1} in ${nextLevel.delayMinutes} minutes`);
 
       const timerId = window.setTimeout(() => {
         if (this.missedMedications.has(medicationId)) {
@@ -227,7 +226,7 @@ public async testEscalation() {
   }
 
   private async executeAction(action: string, missedMed: MissedMedication) {
-    console.log(`🎯 Executing action: ${action} for ${missedMed.medicationName}`);
+    console.log(` Executing action: ${action} for ${missedMed.medicationName}`);
 
     switch (action) {
       case "gentle_notification":
@@ -262,9 +261,9 @@ public async testEscalation() {
     }
   }
 
-  // FIXED: Main family notification method
+  // Main family notification method
   private async notifyFamily(missedMed: MissedMedication, escalationLevel: EscalationLevel) {
-    console.log(`👨‍👩‍👧‍👦 Notifying family members for escalation level ${escalationLevel.level}`);
+    console.log(`Notifying family members for escalation level ${escalationLevel.level}`);
 
     // Create database alert
     await this.createEmergencyAlert(
@@ -276,14 +275,14 @@ public async testEscalation() {
 
     // ALWAYS load fresh from database
     const familyMembers = await this.loadFamilyMembersFromDatabase();
-    console.log('👥 Active family members for notifications:', familyMembers.map(m => `${m.name} (${m.email})`));
+    console.log('Active family members for notifications:', familyMembers.map(m => `${m.name} (${m.email})`));
     
     const recipients = this.getFamilyRecipients(escalationLevel.recipients, familyMembers);
-    console.log('📧 Notification recipients:', recipients.map(r => r.name));
+    console.log('Notification recipients:', recipients.map(r => r.name));
     
     for (const member of recipients) {
       if (this.isInQuietHours(member)) {
-        console.log(`🔇 Skipping notification to ${member.name} due to quiet hours`);
+        console.log(`Skipping notification to ${member.name} due to quiet hours`);
         continue;
       }
 
@@ -295,7 +294,7 @@ public async testEscalation() {
     try {
       const message = this.createFamilyMessage(member, missedMed, escalationLevel);
       
-      console.log(`📬 Sending notification to ${member.name} at ${member.email}`);
+      console.log(`Sending notification to ${member.name} at ${member.email}`);
       
       const response = await fetch('/api/send-notification', {
         method: 'POST',
@@ -315,10 +314,10 @@ public async testEscalation() {
 
       if (response.ok) {
         const result = await response.json();
-        console.log(`✅ Notification sent to ${member.name}:`, result);
+        console.log(`Notification sent to ${member.name}:`, result);
       }
     } catch (error) {
-      console.error(`❌ Failed to send notification to ${member.name}:`, error);
+      console.error(`Failed to send notification to ${member.name}:`, error);
     }
   }
 
@@ -346,15 +345,18 @@ public async testEscalation() {
   }
 
   private isInQuietHours(member: FamilyMember): boolean {
+    if (!member || !member.notificationPreferences) {
+    return false; 
+  }
     const quietHours = member.notificationPreferences?.quietHours || {
     start: "22:00",
     end: "07:00"
   }
     const now = new Date();
-    const currentTime = now.getHours() * 100 + now.getMinutes();
+    const currentTime = now.getHours() * 100 + now.getMinutes();  
     
-    const quietStart = this.timeStringToNumber(member.notificationPreferences.quietHours.start);
-    const quietEnd = this.timeStringToNumber(member.notificationPreferences.quietHours.end);
+    const quietStart = this.timeStringToNumber(quietHours.start);
+    const quietEnd = this.timeStringToNumber(quietHours.end);
 
     if (quietStart > quietEnd) {
       return currentTime >= quietStart || currentTime <= quietEnd;
@@ -375,10 +377,10 @@ public async testEscalation() {
     return `${urgency}${relationship} missed his ${missedMed.medicationName} (${missedMed.dosage}) at ${missedMed.scheduledTime}. This is attempt #${missedMed.attemptCount}. Please check on him.`;
   }
 
-  // Notification methods (simplified for brevity)
+ 
   private async showGentleReminder(missedMed: MissedMedication) {
     if (typeof window === 'undefined') return;
-    const message = `💊 Gentle reminder: Please take your ${missedMed.medicationName} (${missedMed.dosage})`;
+    const message = `Gentle reminder: Please take your ${missedMed.medicationName} (${missedMed.dosage})`;
     try {
       if (Notification.permission === 'granted') {
         new Notification('Medication Reminder', {
@@ -398,7 +400,7 @@ public async testEscalation() {
 
   private async showFirmReminder(missedMed: MissedMedication) {
     if (typeof window === 'undefined') return;
-    const message = `⚠️ IMPORTANT: You missed your ${missedMed.medicationName}. Please take it now!`;
+    const message = ` IMPORTANT: You missed your ${missedMed.medicationName}. Please take it now!`;
     try {
       if (Notification.permission === 'granted') {
         new Notification('MISSED MEDICATION', {
@@ -418,21 +420,21 @@ public async testEscalation() {
 
   private async showEmergencyNotification(missedMed: MissedMedication) {
     if (typeof window === 'undefined') return;
-    const message = `🚨 URGENT: Multiple missed medications detected. Family has been notified. Please take ${missedMed.medicationName} immediately!`;
+    const message = ` URGENT: Multiple missed medications detected. Family has been notified. Please take ${missedMed.medicationName} immediately!`;
     alert(message);
   }
 
   private async playGentleAudio() {
-    console.log('🔊 Playing gentle audio reminder');
+    console.log(' Playing gentle audio reminder');
   }
 
   private async playLouderAudio() {
-    console.log('🔊🔊 Playing louder audio reminder');
+    console.log(' Playing louder audio reminder');
   }
 
   private async flashScreen() {
     if (typeof window === 'undefined') return;
-    console.log('💥 Flashing screen for attention');
+    console.log(' Flashing screen for attention');
     
     const flashDiv = document.createElement('div');
     flashDiv.style.cssText = `
@@ -453,32 +455,32 @@ public async testEscalation() {
   }
 
   private async initiatePhoneCall(missedMed: MissedMedication) {
-    console.log(`📞 Initiating emergency phone call for ${missedMed.medicationName}`);
+    console.log(` Initiating emergency phone call for ${missedMed.medicationName}`);
   }
 
   private async sendSMSAlert(missedMed: MissedMedication) {
-    console.log(`📱 Sending SMS alerts for ${missedMed.medicationName}`);
+    console.log(` Sending SMS alerts for ${missedMed.medicationName}`);
   }
 
   private async sendEmailAlert(missedMed: MissedMedication) {
-    console.log(`📧 Sending email alerts for ${missedMed.medicationName}`);
+    console.log(` Sending email alerts for ${missedMed.medicationName}`);
   }
 
   medicationTaken(medicationId: string) {
-    console.log(`✅ Medication taken: ${medicationId}`);
+    console.log(` Medication taken: ${medicationId}`);
     this.missedMedications.delete(medicationId);
     
     const timerId = this.escalationTimers.get(medicationId);
     if (timerId) {
       clearTimeout(timerId);
       this.escalationTimers.delete(medicationId);
-      console.log(`⏰ Cancelled escalation timer for ${medicationId}`);
+      console.log(` Cancelled escalation timer for ${medicationId}`);
     }
   }
 
   addFamilyMember(member: FamilyMember) {
     this.familyMembers.push(member);
-    console.log(`👨‍👩‍👧‍👦 Added family member: ${member.name}`);
+    console.log(` Added family member: ${member.name}`);
   }
 
   getActiveMissedMedications(): MissedMedication[] {
@@ -493,5 +495,5 @@ public async testEscalation() {
 export const emergencyEscalationService = new EmergencyEscalationService();
 
 export function integrateMedicationTracking() {
-  console.log('🔗 Emergency escalation system ready for integration');
+  console.log(' Emergency escalation system ready for integration');
 }

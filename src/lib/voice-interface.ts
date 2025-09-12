@@ -1,4 +1,3 @@
-// src/lib/voice-interface.ts - Voice Interface for Seniors (SSR Safe)
 "use client";
 
 import React from 'react';
@@ -36,7 +35,7 @@ class VoiceInterfaceService {
   private initialized: boolean = false;
 
   constructor() {
-    // Don't initialize immediately - wait for client-side
+
   }
 
   private initializeVoiceServices() {
@@ -44,7 +43,7 @@ class VoiceInterfaceService {
     
     this.initialized = true;
 
-    // Get speech recognition safely
+    // Get speech recognition 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
     if (SpeechRecognition) {
@@ -102,7 +101,7 @@ class VoiceInterfaceService {
   private async processCommand(transcript: string) {
     const command = transcript.toLowerCase().trim();
     
-    // Simple command processing for seniors
+
     if (command.includes('hey medicare') || command.includes('hello') || command.includes('hi medicare')) {
       const responses = [
         'Hello! I\'m your MediCare assistant. How can I help you today?',
@@ -136,7 +135,7 @@ class VoiceInterfaceService {
   }
 
   private extractMedicationName(command: string): string {
-    // Simple extraction - look for common medication terms
+
     const words = command.split(' ');
     const medicationTerms = ['heart', 'blood', 'pressure', 'vitamin', 'multivitamin', 'cough', 'pain', 'diabetes'];
     
@@ -146,7 +145,7 @@ class VoiceInterfaceService {
       }
     }
     
-    // Look for medication names in our database
+
     for (const med of this.medications) {
       if (command.includes(med.name.toLowerCase())) {
         return med.name;
@@ -161,12 +160,11 @@ class VoiceInterfaceService {
     
     const search = searchName.toLowerCase();
     
-    // Exact match first
+
     let found = this.medications.find(med => 
       med.name.toLowerCase().includes(search) || search.includes(med.name.toLowerCase())
     );
 
-    // Fuzzy matching for common terms
     if (!found) {
       const commonTerms: { [key: string]: string[] } = {
         'heart': ['heart', 'cardiac', 'blood pressure', 'bp'],
@@ -245,7 +243,7 @@ class VoiceInterfaceService {
       return;
     }
 
-    // Mark as taken locally
+
     medication.isTaken = true;
     
     this.speak(`Excellent! I've marked your ${medication.name} as taken. Great job staying healthy!`);
@@ -253,8 +251,7 @@ class VoiceInterfaceService {
     this.onMedicationTaken(medication.id);
     console.log(`✅ Voice interface triggered medication taken callback for ${medication.id}`);
   }
-    
-    // TODO: Integrate with your medication tracking system
+
     console.log(`✅ Voice interface marked medication ${medication.id} as taken`);
   }
 
@@ -280,17 +277,16 @@ class VoiceInterfaceService {
       return;
     }
 
-    // Cancel any ongoing speech
+
     this.synthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Configure voice for seniors
-    utterance.rate = 0.8; // Slightly slower for clarity
-    utterance.pitch = 1.0; // Normal pitch
-    utterance.volume = 0.9; // Loud enough to hear
 
-    // Prefer female voices (often clearer for seniors)
+    utterance.rate = 0.8;
+    utterance.pitch = 1.0;
+    utterance.volume = 0.9; 
+
+
     const voices = this.synthesis.getVoices();
     const preferredVoice = voices.find(voice => 
       voice.lang.startsWith('en') && voice.name.toLowerCase().includes('female')
@@ -316,7 +312,7 @@ class VoiceInterfaceService {
 
   // Public API methods
   public startListening() {
-    this.initializeVoiceServices(); // Initialize only when needed
+    this.initializeVoiceServices(); 
     
     if (!this.recognition) {
       this.speak('Voice recognition is not supported on this device.');
@@ -367,17 +363,16 @@ class VoiceInterfaceService {
   }
 
   public isSupported(): boolean {
-    this.initializeVoiceServices(); // Check support when asked
+    this.initializeVoiceServices(); 
     return this.state.isSupported;
   }
 
   public testVoice() {
-    this.initializeVoiceServices(); // Initialize when testing
+    this.initializeVoiceServices(); 
     this.speak('Voice interface is working! You can now talk to me about your medications.');
   }
 }
 
-// Create service instance only when needed
 let serviceInstance: VoiceInterfaceService | null = null;
 
 function getVoiceInterfaceService(): VoiceInterfaceService {
@@ -387,7 +382,7 @@ function getVoiceInterfaceService(): VoiceInterfaceService {
   return serviceInstance;
 }
 
-// Export service instance (lazy-loaded)
+
 export const voiceInterfaceService = typeof window !== 'undefined' ? getVoiceInterfaceService() : null;
 
 // React hook for components
@@ -405,8 +400,7 @@ export function useVoiceInterface() {
     
     const service = getVoiceInterfaceService();
     service.setStateChangeListener(setState);
-    
-    // Update initial state
+
     setState(service.getState());
     
     return () => {
@@ -424,7 +418,6 @@ export function useVoiceInterface() {
   };
 }
 
-// Integration helper for existing medication system
 export function integrateVoiceWithMedications(medications: any[], takenMedications: Set<string>) {
   if (typeof window === 'undefined' || !voiceInterfaceService) return;
   

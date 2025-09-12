@@ -1,4 +1,3 @@
-// src/lib/auth-utils.ts
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
@@ -17,25 +16,25 @@ export const ROLE_HIERARCHY = {
 
 export type UserRole = keyof typeof ROLE_HIERARCHY
 
-// Check if user has minimum required role
+// if user has minimum required role
 export function hasMinimumRole(userRole: string, requiredRole: UserRole): boolean {
   const userLevel = ROLE_HIERARCHY[userRole as UserRole] || 0
   const requiredLevel = ROLE_HIERARCHY[requiredRole]
   return userLevel >= requiredLevel
 }
 
-// Get current session on server side
+
 export async function getCurrentSession() {
   return await getServerSession(authOptions)
 }
 
-// Get current user with error handling
+
 export async function getCurrentUser() {
   const session = await getCurrentSession()
   return session?.user || null
 }
 
-// Require authentication - redirect if not authenticated
+
 export async function requireAuth() {
   const session = await getCurrentSession()
   
@@ -46,7 +45,7 @@ export async function requireAuth() {
   return session.user
 }
 
-// Require specific role - redirect if insufficient permissions
+
 export async function requireRole(minimumRole: UserRole) {
   const user = await requireAuth()
   
@@ -57,7 +56,7 @@ export async function requireRole(minimumRole: UserRole) {
   return user
 }
 
-// Check permissions for specific actions
+// Check permissions 
 export const permissions = {
   // Medication management
   canCreateMedications: (userRole: string) => 
@@ -117,7 +116,7 @@ export const routePermissions = {
   '/settings': ['ADMIN', 'SENIOR', 'CAREGIVER']
 }
 
-// Check if user can access route
+// if user can access route
 export function canAccessRoute(userRole: string, route: string): boolean {
   const allowedRoles = routePermissions[route as keyof typeof routePermissions]
   return allowedRoles ? allowedRoles.includes(userRole) : false
@@ -150,7 +149,7 @@ export async function getUserProfile(userId: string) {
 // Update user role (Admin only)
 export async function updateUserRole(userId: string, newRole: UserRole, adminUserId: string) {
   try {
-    // Verify admin has permission
+   
     const adminProfile = await prisma.userProfile.findUnique({
       where: { userId: adminUserId }
     })
@@ -172,10 +171,10 @@ export async function updateUserRole(userId: string, newRole: UserRole, adminUse
   }
 }
 
-// Deactivate user account (Admin only)
+
 export async function deactivateUser(userId: string, adminUserId: string) {
   try {
-    // Verify admin has permission
+ 
     const adminProfile = await prisma.userProfile.findUnique({
       where: { userId: adminUserId }
     })
@@ -184,7 +183,7 @@ export async function deactivateUser(userId: string, adminUserId: string) {
       throw new Error('Insufficient permissions to deactivate user')
     }
     
-    // Deactivate user
+  
     const updatedProfile = await prisma.userProfile.update({
       where: { userId },
       data: { isActive: false }
@@ -200,24 +199,16 @@ export async function deactivateUser(userId: string, adminUserId: string) {
 // Create audit log entry
 export async function createAuditLog(action: string, userId: string, details?: any) {
   try {
-    // If you have an audit log table, log the action here
+   
     console.log(`Audit Log: ${action} by user ${userId}`, details)
     
-    // Example implementation:
-    // await prisma.auditLog.create({
-    //   data: {
-    //     action,
-    //     userId,
-    //     details: JSON.stringify(details),
-    //     timestamp: new Date()
-    //   }
-    // })
+    /
   } catch (error) {
     console.error('Error creating audit log:', error)
   }
 }
 
-// Role display helpers
+
 export const roleDisplayNames = {
   ADMIN: 'Administrator',
   DOCTOR: 'Healthcare Provider',

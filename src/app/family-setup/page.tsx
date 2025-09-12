@@ -1,4 +1,3 @@
-// src/app/family-setup/page.tsx - Family Member Registration with Edit/Delete/Validation
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -47,7 +46,6 @@ export default function FamilySetupPage() {
     }
   });
 
-  // Mock current user - Replace with actual auth
   useEffect(() => {
     setCurrentUser({ role: 'admin', id: 'user123' });
   }, []);

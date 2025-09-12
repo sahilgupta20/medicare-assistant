@@ -4,14 +4,21 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    console.log('Emergency alert created:', data)
+    console.log('Creating emergency alert:', data)
     
-    // For now, just return success without database
-    const alert = {
-      id: `alert-${Date.now()}`,
-      ...data,
-      created: new Date()
-    }
+    // Actually save to database
+    const alert = await prisma.emergencyAlert.create({
+      data: {
+        medicationId: data.medicationId,
+        medicationName: data.medicationName || 'Unknown Medication',
+        alertType: data.alertType || 'missed_dose',
+        severity: data.severity || 'medium',
+        message: data.message,
+        escalationLevel: data.escalationLevel || 1,
+        status: 'active',
+        userId: data.userId || null
+      }
+    })
     
     return NextResponse.json(alert)
   } catch (error) {
@@ -23,7 +30,9 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const alerts = await prisma.emergencyAlert.findMany({
-      where: { status: 'active' },
+      where: { 
+        status: 'active'
+      },
       orderBy: { createdAt: 'desc' }
     })
     

@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const totalToday = todayLogs.length
     const adherencePercentage = totalToday > 0 ? Math.round((takenToday / totalToday) * 100) : 0
 
-    // Prepare notification data
+    //  notification data
     const notificationData = {
       seniorName: senior.name,
       date: new Date().toLocaleDateString(),

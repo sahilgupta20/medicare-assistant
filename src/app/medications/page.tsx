@@ -45,9 +45,11 @@ export default function MedicationsPage() {
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [userName] = useState("Sahil")
+  const [userName] = useState("John")
   const [takenMedications, setTakenMedications] = useState<Set<string>>(new Set())
+  const [currentIST, setCurrentIST] = useState('')
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [isScheduling, setIsScheduling] = useState(false)
   const [reminderTimeouts, setReminderTimeouts] = useState<Map<string, number>>(new Map())
   
   // Role-based access control
@@ -61,27 +63,70 @@ export default function MedicationsPage() {
     description: '',
     color: '',
     shape: '',
-    times: [],
+    times: ['08:00'],
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     isActive: true
   })
+  
+  interface TimeSlot {
+  id: string
+  hour: number
+  minute: number
+  enabled: boolean
+}
+
+  const getCurrentIST = () => {
+    return new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  }
+
+  const formatTimeForIST = (timeString: string) => {
+  try {
+    const [hours, minutes] = timeString.split(':').map(Number)
+    const date = new Date()
+    date.setHours(hours, minutes, 0, 0)
+    
+    return date.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour12: true,
+      hour: 'numeric',
+      minute: '2-digit'
+    })
+  } catch (error) {
+    return timeString
+  }
+}
+
+  // Update IST time every second
+  useEffect(() => {
+    const updateIST = () => setCurrentIST(getCurrentIST())
+    updateIST()
+    const interval = setInterval(updateIST, 1000)
+    return () => clearInterval(interval)
+  }, [])
+  
 
   // Mock current user - Replace with actual auth
   useEffect(() => {
     setCurrentUser({ 
       id: 'user123', 
-      role: 'admin', // Change this to test different roles: 'admin', 'caregiver', 'family', 'senior'
+      role: 'admin', 
       name: 'Sahil'
     })
   }, [])
 
-  // Permission checks based on user role
+  
   const permissions = {
     canAdd: currentUser?.role === 'admin' || currentUser?.role === 'caregiver' || currentUser?.role === 'senior',
     canEdit: currentUser?.role === 'admin' || currentUser?.role === 'caregiver' || currentUser?.role === 'senior',
     canDelete: currentUser?.role === 'admin' || currentUser?.role === 'caregiver',
-    canView: true, // Everyone can view
+    canView: true, 
     canMarkTaken: currentUser?.role === 'admin' || currentUser?.role === 'caregiver' || currentUser?.role === 'senior'
   }
 
@@ -89,7 +134,7 @@ export default function MedicationsPage() {
     fetchMedications()
     fetchTakenMedications()
     checkNotificationPermission()
-    testBrowserSupport()
+
   }, [])
 
   useEffect(() => { 
@@ -121,13 +166,32 @@ export default function MedicationsPage() {
     }
   }, []);
 
+  useEffect(() => {
+  if (medications.length > 0 && notificationsEnabled) {
+    console.log('Auto-scheduling reminders for', medications.length, 'medications')
+    const timeoutId = setTimeout(() => {
+      scheduleAllReminders()
+    }, 1000)
+    
+    return () => clearTimeout(timeoutId)
+  }
+}, [medications, notificationsEnabled])
+
+  
+
+  
+
+
   const fetchMedications = async () => {
     try {
       const response = await fetch('/api/medications')
       if (response.ok) {
         const data = await response.json()
         setMedications(data)
+   
+    
       }
+
     } catch (error) {
       console.error('Error fetching medications:', error)
     } finally {
@@ -162,51 +226,122 @@ export default function MedicationsPage() {
   }
 
   const checkNotificationPermission = () => {
-    if ('Notification' in window) {
-      setNotificationsEnabled(Notification.permission === 'granted')
+  if ('Notification' in window) {
+    const permission = Notification.permission
+    console.log('🔔 Current notification permission:', permission)
+    setNotificationsEnabled(permission === 'granted')
+    
+    if (permission === 'default') {
+      console.log('ℹ Notifications not yet requested')
+    } else if (permission === 'denied') {
+      console.log(' Notifications denied - user needs to enable in browser settings')
     }
+  } else {
+    console.error(' Notifications not supported in this browser')
   }
+}
 
-  const testBrowserSupport = () => {
-    console.log('Browser support check:')
-    console.log('- Notifications supported:', 'Notification' in window)
-    console.log('- Current permission:', Notification.permission)
-    console.log('- Service Worker supported:', 'serviceWorker' in navigator)
-  }
+  // const testBrowserSupport = () => {
+  //   console.log('Browser support check:')
+  //   console.log('- Notifications supported:', 'Notification' in window)
+  //   console.log('- Current permission:', Notification.permission)
+  //   console.log('- Service Worker supported:', 'serviceWorker' in navigator)
+  // }
 
   const enableNotifications = async () => {
-    console.log('Bell button clicked!')
-    
-    try {
-      console.log('Current permission:', Notification.permission)
-      const notificationService = NotificationService.getInstance()
-      console.log('NotificationService created')
-      
-      const granted = await notificationService.requestPermission()
-      console.log('Permission result:', granted)
-      
-      setNotificationsEnabled(granted)
-      
-      if (granted) {
-        scheduleAllReminders()
-        await notificationService.testNotification()
-        console.log('Test notification should have appeared')
-      }
-    } catch (error) {
-      console.error('Error in enableNotifications:', error)
-    }
-  }
-
-  const scheduleAllReminders = () => {
-    console.log('Scheduling all reminders...')
+  console.log(' Bell button clicked!')
+  
+  try {
+    console.log('Current permission:', Notification.permission)
     const notificationService = NotificationService.getInstance()
     
-    setReminderTimeouts(new Map())
-    notificationService.scheduleAllMedicationReminders(medications)
-    console.log('All reminders scheduled!')
+    if (!notificationService) {
+      console.error(' Notification service not available')
+      alert('Notification service not available. Please refresh the page.')
+      return
+    }
+    
+    console.log(' Requesting permission...')
+    const granted = await notificationService.requestPermission()
+    console.log(' Permission result:', granted)
+    
+    setNotificationsEnabled(granted)
+    
+    if (granted && medications.length > 0) {
+      console.log(' Scheduling reminders for', medications.length, 'medications')
+      scheduleAllReminders()
+      
+      // Test notification
+      await notificationService.testNotifications()
+      console.log(' Test notification sent')
+      
+      alert('Notifications enabled! You should receive reminders at scheduled times.')
+    } else if (!granted) {
+      alert('Please allow notifications in your browser settings to receive medication reminders.')
+    }
+  } catch (error) {
+    console.error(' Error in enableNotifications:', error)
+    alert('Failed to enable notifications. Please check browser settings.')
   }
+}
+const testImmediateNotification = async () => {
 
-  // Form validation
+  console.log(' Testing immediate notification...')
+  
+  try {
+    const notificationService = NotificationService.getInstance()
+    
+    if (Notification.permission !== 'granted') {
+      const granted = await notificationService.requestPermission()
+      if (!granted) return
+    }
+
+    // Create a test medication for right now
+    const now = new Date()
+    const testTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`
+    
+    const testMedication = {
+      id: 'test-immediate',
+      name: 'Test Medicine',
+      dosage: '1 tablet',
+      times: [testTime],
+      scheduledTime: testTime
+    }
+
+    await notificationService.showMedicationReminder(testMedication, testTime)
+    console.log('✅ Immediate test notification sent')
+    
+  } catch (error) {
+    console.error(' Test notification failed:', error)
+    alert('Test notification failed: ' + error.message)
+  }
+}
+
+  
+
+  const scheduleAllReminders = async () => {
+  if (isScheduling) {
+    console.log('Already scheduling, skipping...')
+    return
+  }
+  
+  setIsScheduling(true)
+  console.log('Scheduling all reminders...')
+  
+  const notificationService = NotificationService.getInstance()
+  if (!notificationService) {
+    setIsScheduling(false)
+    return
+  }
+  
+  notificationService.scheduleReminders(medications)
+  console.log('All reminders scheduled!')
+  
+  
+  setTimeout(() => setIsScheduling(false), 1000)
+}
+
+ 
   const validateForm = (medication: MedicationFormData): Record<string, string> => {
     const errors: Record<string, string> = {}
     
@@ -220,7 +355,7 @@ export default function MedicationsPage() {
 
   const handleAddMedication = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+  
     if (!permissions.canAdd && !editingMedication) {
       alert('You do not have permission to add medications')
       return
@@ -233,13 +368,20 @@ export default function MedicationsPage() {
 
     const errors = validateForm(formData)
     setFormErrors(errors)
+    console.log('Validation errors:', errors)
     
     if (Object.keys(errors).length > 0) return
 
     setSubmitting(true)
-    try {
+    try { 
       const url = editingMedication ? `/api/medications?id=${editingMedication.id}` : '/api/medications'
       const method = editingMedication ? 'PUT' : 'POST'
+
+      const payload = {
+      ...formData,
+      times: formData.times.join(',')
+      }
+      console.log('Sending to API:', payload)
       
       const response = await fetch(url, {
         method,
@@ -251,10 +393,12 @@ export default function MedicationsPage() {
           times: formData.times.join(',')
         })
       })
+      console.log('API Response status:', response.status)
 
       if (response.ok) {
         await fetchMedications()
         resetForm()
+
         alert(editingMedication ? 'Medication updated successfully!' : 'Medication added successfully!')
       } else {
         const errorData = await response.json()
@@ -323,7 +467,7 @@ export default function MedicationsPage() {
       description: '',
       color: '',
       shape: '',
-      times: [],
+      times: ['08:00'], 
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
       isActive: true
@@ -401,6 +545,29 @@ export default function MedicationsPage() {
         : [...prev.times, time]
     }))
   }
+ 
+  const addTimeSlot = () => {
+    setFormData(prev => ({
+      ...prev,
+      times: [...prev.times, '08:00']
+    }))
+  }
+
+  const removeTimeSlot = (index: number) => {
+    if (formData.times.length <= 1) return 
+    
+    setFormData(prev => ({
+      ...prev,
+      times: prev.times.filter((_, i) => i !== index)
+    }))
+  }
+
+  const updateTimeSlot = (index: number, newTime: string) => {
+    setFormData(prev => ({
+      ...prev,
+      times: prev.times.map((time, i) => i === index ? newTime : time)
+    }))
+  }
 
   if (loading) {
     return (
@@ -415,7 +582,6 @@ export default function MedicationsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 relative overflow-hidden">
-      {/* Floating decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-32 right-20 w-24 h-24 bg-gradient-to-br from-blue-200 to-indigo-300 rounded-full opacity-30"></div>
         <div className="absolute bottom-40 left-32 w-20 h-20 bg-gradient-to-br from-green-200 to-emerald-300 rounded-full opacity-40"></div>
@@ -444,6 +610,8 @@ export default function MedicationsPage() {
                   </h1>
                   <p className="text-gray-600 text-lg">
                     {currentUser?.role === 'family' ? 'View medications and schedules' : `Taking care of yourself today, ${userName}`}
+                    <br />
+                    <span className="text-sm">Current IST: {currentIST}</span>
                   </p>
                   <p className="text-sm text-gray-500">
                     Logged in as: {currentUser?.name} ({currentUser?.role})
@@ -500,7 +668,6 @@ export default function MedicationsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-10">
-        {/* Today's Medicine Schedule */}
         <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-[2.5rem] shadow-2xl p-10 mb-12 border border-white/50 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-100/20 to-purple-100/20 rounded-[2.5rem]"></div>
           
@@ -550,7 +717,7 @@ export default function MedicationsPage() {
                             <div className="flex items-center space-x-3 mb-2">
                               <Clock className={`h-6 w-6 ${isTaken ? 'text-green-600' : 'text-rose-600'}`} />
                               <div className={`text-3xl font-bold ${isTaken ? 'text-green-800' : 'text-rose-800'}`}>
-                                {time}
+                                {time.trim()} ({formatTimeForIST(time.trim())})
                               </div>
                             </div>
                             <div className={`text-xl font-semibold mb-2 ${isTaken ? 'text-green-700' : 'text-rose-700'}`}>
@@ -590,7 +757,7 @@ export default function MedicationsPage() {
           </div>
         </div>
 
-        {/* All Medications Cabinet */}
+
         <div className="bg-gradient-to-br from-white via-emerald-50/30 to-green-50/50 rounded-[2.5rem] shadow-2xl p-10 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/20 to-green-100/20 rounded-[2.5rem]"></div>
           
@@ -649,7 +816,19 @@ export default function MedicationsPage() {
                       
                       <div className="space-y-2 mb-6">
                         <div className="flex items-center space-x-4 text-sm text-gray-600">
-                          <span><strong>Times:</strong> {med.times.split(',').join(', ')}</span>
+                          <span><strong>Times (IST):</strong></span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {med.times.split(',').map(time => {
+                            const timeFormatted = time.trim()
+                            const time12Hour = formatTimeForIST(timeFormatted)
+                            
+                            return (
+                              <span key={timeFormatted} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                {timeFormatted} ({time12Hour})
+                              </span>
+                            )
+                          })}
                         </div>
                         {(med.color || med.shape) && (
                           <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -660,7 +839,6 @@ export default function MedicationsPage() {
                       </div>
                     </div>
 
-                    {/* Photo placeholder */}
                     <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
                       <Camera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                       <p className="text-gray-500">Add photo of medication</p>
@@ -772,23 +950,117 @@ export default function MedicationsPage() {
 
                   <div>
                     <label className="block text-xl font-medium text-gray-700 mb-2">
-                      When to take (select times) *
+                      When to take? * (Current time: {currentIST.slice(0, 5)} IST)
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {['06:00', '08:00', '12:00', '18:00', '20:00', '22:00'].map(time => (
-                        <label key={time} className={`flex items-center space-x-2 p-3 border-2 rounded-xl hover:border-blue-300 cursor-pointer transition-colors ${
-                          formData.times.includes(time) ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                        }`}>
-                          <input 
-                            type="checkbox" 
-                            checked={formData.times.includes(time)}
-                            onChange={() => handleTimeToggle(time)}
-                            className="w-5 h-5" 
-                          />
-                          <span className="text-lg">{time}</span>
-                        </label>
-                      ))}
+                    
+                    {/* Quick Time Presets */}
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">Quick presets:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { label: 'Morning (8:00)', time: '08:00' },
+                          { label: 'Afternoon (12:00)', time: '12:00' },
+                          { label: 'Evening (18:00)', time: '18:00' },
+                          { label: 'Night (22:00)', time: '22:00' }
+                        ].map(preset => (
+                          <button
+                            key={preset.time}
+                            type="button"
+                            onClick={() => {
+                              if (!formData.times.includes(preset.time)) {
+                                setFormData(prev => ({ 
+                                  ...prev, 
+                                  times: [...prev.times, preset.time] 
+                                }))
+                              }
+                            }}
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded-lg text-sm transition-colors"
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+
+                    {/* Custom Time Slots */}
+                    <div className="space-y-3 mb-4">
+                      {formData.times.map((time, index) => (
+                        <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-blue-600" />
+                            <span className="font-medium">Time {index + 1}:</span>
+                          </div>
+                          
+                          {/* Hour Selector */}
+                          <select
+                            value={time.split(':')[0]}
+                            onChange={(e) => {
+                              const newHour = e.target.value.padStart(2, '0')
+                              const currentMinute = time.split(':')[1] || '00'
+                              const newTime = `${newHour}:${currentMinute}`
+                              updateTimeSlot(index, newTime)
+                            }}
+                            className="p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                          >
+                            {Array.from({ length: 24 }, (_, i) => (
+                              <option key={i} value={i.toString().padStart(2, '0')}>
+                                {i.toString().padStart(2, '0')}
+                              </option>
+                            ))}
+                          </select>
+                          
+                          <span className="text-xl font-bold text-gray-600">:</span>
+                          
+                          {/* Minute Selector */}
+                          <select
+                            value={time.split(':')[1] || '00'}
+                            onChange={(e) => {
+                              const currentHour = time.split(':')[0] || '08'
+                              const newMinute = e.target.value
+                              const newTime = `${currentHour}:${newMinute}`
+                              updateTimeSlot(index, newTime)
+                            }}
+                            className="p-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
+                          >
+                            {Array.from({ length: 12 }, (_, i) => {
+                              const minute = (i * 5).toString().padStart(2, '0')
+                              return (
+                                <option key={minute} value={minute}>
+                                  {minute}
+                                </option>
+                              )
+                            })}
+                          </select>
+                          
+                          <span className="text-gray-600">
+                            ({time} IST - {formatTimeForIST(time)})
+                          </span>
+                          
+                          {/* Remove Time Button */}
+                          {formData.times.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeTimeSlot(index)}
+                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                              title="Remove this time"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {/* Add Time Button */}
+                      <button
+                        type="button"
+                        onClick={addTimeSlot}
+                        className="w-full border-2 border-dashed border-gray-300 hover:border-blue-400 p-4 rounded-xl text-gray-600 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Plus className="h-5 w-5" />
+                        Add Another Time
+                      </button>
+                    </div>
+                    
                     {formErrors.times && <p className="text-red-500 text-sm mt-1">{formErrors.times}</p>}
                   </div>
 

@@ -1,4 +1,4 @@
-# MediCare Assistant 💊
+# MediCare Assistant 
 
 A medication reminder application specifically designed for seniors, featuring large, accessible interfaces and family caregiver support.
 
@@ -43,9 +43,12 @@ npx prisma db push
 npm run dev
 ```
 
-## Live Demo
+![alt text](./public/Screenshot%201.png)
+![alt text](./public/Screenshot%202.png)
+![alt text](./public/Screenshot%203.png)
+![alt text](./public/Screenshot%204.png)
+![alt text](./public/Screenshot%205.png)
 
-🔗 [View Live Application](https://medicare-assistant.vercel.app)
 
 ## Testing
 

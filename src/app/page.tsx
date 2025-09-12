@@ -5,18 +5,18 @@ import Link from 'next/link'
 import { Pill, Users, Bell, Heart, Shield, Sun } from 'lucide-react'
 
 export default function HomePage() {
-  const [userName] = useState("Sahil")
+  const [userName] = useState("John")
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 relative overflow-hidden">
-      {/* Floating decorative elements */}
+      {}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-br from-rose-200 to-pink-300 rounded-full opacity-30"></div>
         <div className="absolute top-40 right-32 w-24 h-24 bg-gradient-to-br from-blue-200 to-indigo-300 rounded-full opacity-40"></div>
         <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-gradient-to-br from-green-200 to-emerald-300 rounded-full opacity-35"></div>
       </div>
 
-      {/* Header with personality */}
+      {}
       <header className="bg-white/80 backdrop-blur-lg shadow-lg border-b border-white/20">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
@@ -51,9 +51,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Main Content */}
+
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Warm welcome message */}
         <div className="text-center mb-16 relative">
           <div className="inline-block relative">
             <h2 className="text-6xl font-bold text-gray-800 mb-6 relative z-10">
@@ -69,7 +68,7 @@ export default function HomePage() {
           </p>
         </div>
         
-        {/* Main Action Cards with enhanced design */}
+        {/* Action card */}
         <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto mb-20">
           <Link href="/medications" className="group">
             <div className="relative overflow-hidden">
@@ -110,7 +109,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Features with warm, human touch */}
+       
         <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-[3rem] shadow-2xl p-16 mb-20 border border-white/50 relative overflow-hidden">
           <div className="absolute inset-0 opacity-5">
             <div className="absolute inset-0" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, #6366f1 1px, transparent 0)', backgroundSize: '40px 40px'}}></div>
@@ -170,7 +169,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Impact stats with human stories */}
+       
         <div className="grid md:grid-cols-3 gap-8 text-center">
           <div className="bg-white/70 backdrop-blur-sm p-10 rounded-3xl shadow-xl border border-white/30 hover:shadow-2xl transition-all duration-300 group">
             <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4 group-hover:scale-110 transition-transform">
@@ -201,7 +200,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Warm, personal footer */}
+      {/* footer */}
       <footer className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-16 mt-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-rose-900/20 to-purple-900/20"></div>
         <div className="max-w-7xl mx-auto px-6 text-center relative z-10">

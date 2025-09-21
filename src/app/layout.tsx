@@ -1,49 +1,28 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { AuthProvider } from "@/components/AuthProvider";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'MediCare Assistant - Medication Reminders for Seniors',
-  description: 'Simple, accessible medication management designed specifically for seniors and their families.',
-  keywords: ['medication', 'seniors', 'healthcare', 'accessibility', 'reminders'],
-  authors: [{ name: 'Your Name' }],
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png',
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'MediCare Assistant',
-  },
-  formatDetection: {
-    telephone: false,
-  },
-  openGraph: {
-    type: 'website',
-    siteName: 'MediCare Assistant',
-    title: 'MediCare Assistant - Medication Reminders for Seniors',
-    description: 'Simple, accessible medication management designed specifically for seniors and their families.',
-  },
-  twitter: {
-    card: 'summary',
-    title: 'MediCare Assistant - Medication Reminders for Seniors',
-    description: 'Simple, accessible medication management designed specifically for seniors and their families.',
-  },
-}
+  title: "MediCare Assistant - Medication Reminders for Seniors",
+  description:
+    "Simple, accessible medication management designed specifically for seniors and their families.",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1"
+        />
         <meta name="theme-color" content="#e11d48" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -52,17 +31,16 @@ export default function RootLayout({
         <link rel="icon" href="/icon-192.png" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      {/* ADDED: suppressHydrationWarning to ignore browser extension attributes */}
-      <body 
+      <body
         className={`${inter.className} bg-gray-50 min-h-screen`}
         suppressHydrationWarning={true}
       >
-        <div className="min-h-screen flex flex-col">
-          <main className="flex-1">
-            {children}
-          </main>
-        </div>
-        
+        <AuthProvider>
+          <div className="min-h-screen flex flex-col">
+            <main className="flex-1">{children}</main>
+          </div>
+        </AuthProvider>
+
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -77,10 +55,23 @@ export default function RootLayout({
                     });
                 });
               }
+              
+              // DEBUG: Add session checker
+              window.checkAuth = function() {
+                const cookies = document.cookie;
+                const hasNextAuth = cookies.includes('next-auth');
+                const hasSessionToken = cookies.includes('session-token');
+                console.log('🔍 NextAuth cookies found:', hasNextAuth);
+                console.log('🔍 Session token found:', hasSessionToken);
+                console.log('🔍 All cookies:', cookies);
+                return hasNextAuth || hasSessionToken;
+              };
+              
+              console.log('🔧 Debug function added: window.checkAuth()');
             `,
           }}
         />
       </body>
     </html>
-  )
+  );
 }

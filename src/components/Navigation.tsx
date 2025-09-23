@@ -1,3 +1,4 @@
+// src/components/Navigation.tsx - FIXED WITH STRICT RBAC
 "use client";
 
 import { useState } from "react";
@@ -24,44 +25,47 @@ export function Navigation() {
 
   if (!isAuthenticated) return null;
 
-  // Define navigation items with proper role restrictions
-  const navigationItems = [
-    {
-      name: "Medications",
-      href: "/medications",
-      icon: Pill,
-      roles: ["ADMIN", "SENIOR", "CAREGIVER"], // FAMILY and DOCTOR cannot access
-    },
-    {
-      name: "Family Circle",
-      href: "/family",
-      icon: Users,
-      roles: ["ADMIN", "SENIOR", "CAREGIVER", "FAMILY", "DOCTOR"], // All roles can view
-    },
-    {
-      name: "Analytics",
-      href: "/analytics",
-      icon: BarChart3,
-      roles: ["ADMIN", "DOCTOR", "CAREGIVER"], // Only medical roles and admin
-    },
-    {
-      name: "Family Setup",
-      href: "/family-setup",
-      icon: Settings,
-      roles: ["ADMIN", "SENIOR", "CAREGIVER"], // Only those who can manage family
-    },
-    {
-      name: "Admin Dashboard",
-      href: "/admin",
-      icon: Shield,
-      roles: ["ADMIN"], // Admin only
-    },
-  ];
+  // 🔒 STRICT ROLE-BASED NAVIGATION ITEMS
+  const getNavigationItems = (userRole: string) => {
+    switch (userRole) {
+      case "ADMIN":
+        return [
+          { name: "Admin Dashboard", href: "/admin", icon: Shield },
+          { name: "Medications", href: "/medications", icon: Pill },
+          { name: "Family Circle", href: "/family", icon: Users },
+          { name: "Analytics", href: "/analytics", icon: BarChart3 },
+          { name: "Family Setup", href: "/family-setup", icon: Settings },
+        ];
 
-  // Filter navigation items based on user role
-  const allowedItems = navigationItems.filter((item) =>
-    item.roles.includes(user?.role as string)
-  );
+      case "SENIOR":
+        return [
+          { name: "My Medications", href: "/medications", icon: Pill },
+          { name: "Family Circle", href: "/family", icon: Users },
+        ];
+
+      case "FAMILY":
+        return [{ name: "Family Dashboard", href: "/family", icon: Users }];
+
+      case "CAREGIVER":
+        return [
+          { name: "Medications", href: "/medications", icon: Pill },
+          { name: "Family Circle", href: "/family", icon: Users },
+          { name: "Analytics", href: "/analytics", icon: BarChart3 },
+          { name: "Family Setup", href: "/family-setup", icon: Settings },
+        ];
+
+      case "DOCTOR":
+        return [
+          { name: "Analytics", href: "/analytics", icon: BarChart3 },
+          { name: "Family Updates", href: "/family", icon: Users },
+        ];
+
+      default:
+        return [];
+    }
+  };
+
+  const navigationItems = getNavigationItems(user?.role || "");
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -106,7 +110,6 @@ export function Navigation() {
     <nav className="bg-white/80 backdrop-blur-lg shadow-lg border-b border-white/20 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo and brand */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3">
               <div className="bg-gradient-to-br from-rose-400 to-pink-600 p-2 rounded-2xl">
@@ -116,9 +119,8 @@ export function Navigation() {
             </Link>
           </div>
 
-          {/* Desktop navigation - filtered by role */}
           <div className="hidden md:flex items-center space-x-6">
-            {allowedItems.map((item) => {
+            {navigationItems.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
 
@@ -139,9 +141,7 @@ export function Navigation() {
             })}
           </div>
 
-          {/* User menu */}
           <div className="flex items-center space-x-4">
-            {/* User profile with role-based styling */}
             <div className="flex items-center space-x-3">
               <div className="text-right hidden sm:block">
                 <div className="text-sm font-medium text-gray-900">
@@ -164,7 +164,6 @@ export function Navigation() {
               </div>
             </div>
 
-            {/* Sign out button */}
             <button
               onClick={handleSignOut}
               className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
@@ -173,7 +172,6 @@ export function Navigation() {
               <LogOut className="h-5 w-5" />
             </button>
 
-            {/* Mobile menu button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="md:hidden p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
@@ -187,11 +185,10 @@ export function Navigation() {
           </div>
         </div>
 
-        {/* Mobile navigation - also filtered by role */}
         {isOpen && (
           <div className="md:hidden border-t border-gray-200 py-4">
             <div className="space-y-2">
-              {allowedItems.map((item) => {
+              {navigationItems.map((item) => {
                 const isActive = pathname === item.href;
                 const Icon = item.icon;
 
@@ -212,7 +209,6 @@ export function Navigation() {
                 );
               })}
 
-              {/* Mobile user info */}
               <div className="px-4 py-3 border-t border-gray-200 mt-4">
                 <div className="text-sm font-medium text-gray-900 mb-1">
                   {user?.name}

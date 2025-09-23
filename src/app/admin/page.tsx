@@ -16,6 +16,7 @@ import {
   Eye,
   X,
   Save,
+  ArrowRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -44,7 +45,6 @@ export default function AdminDashboard() {
     status: "active" as const,
   });
 
-  // Demo users for display
   const demoUsers: User[] = [
     {
       id: "1",
@@ -94,25 +94,28 @@ export default function AdminDashboard() {
   ];
 
   useEffect(() => {
-    // Simulate loading users
     setTimeout(() => {
       setUsers(demoUsers);
       setLoading(false);
     }, 1000);
   }, []);
 
+  const adminPermissions = {
+    canManageUsers: user?.role === "ADMIN",
+    canViewSystemSettings: user?.role === "ADMIN",
+    canAccessAdminPanel: user?.role === "ADMIN",
+  };
+
   const handleManageUsers = () => {
     setShowUserManagement(true);
   };
 
   const handleSystemReports = () => {
-    alert(
-      "System Reports: This would show detailed analytics and usage reports"
-    );
+    window.location.href = "/admin/reports";
   };
 
   const handleSystemSettings = () => {
-    alert("System Settings: This would open system configuration options");
+    window.location.href = "/admin/settings";
   };
 
   const handleAddUser = () => {
@@ -204,7 +207,7 @@ export default function AdminDashboard() {
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
         {/* Header */}
-        <div className="bg-white/80 backdrop-blur-lg shadow-lg border-b">
+        {/* <div className="bg-white/80 backdrop-blur-lg shadow-lg border-b">
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -232,7 +235,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Admin Stats Grid */}
@@ -296,7 +299,7 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <button
                 onClick={handleManageUsers}
-                className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow cursor-pointer text-left hover:bg-blue-50"
+                className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow cursor-pointer text-left hover:bg-blue-50 group"
               >
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="bg-blue-100 p-2 rounded-xl">
@@ -305,6 +308,7 @@ export default function AdminDashboard() {
                   <h3 className="text-lg font-semibold text-gray-900">
                     Manage Users
                   </h3>
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 ml-auto" />
                 </div>
                 <p className="text-gray-600">
                   View, edit, and manage user accounts
@@ -313,7 +317,7 @@ export default function AdminDashboard() {
 
               <button
                 onClick={handleSystemReports}
-                className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow cursor-pointer text-left hover:bg-green-50"
+                className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow cursor-pointer text-left hover:bg-green-50 group"
               >
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="bg-green-100 p-2 rounded-xl">
@@ -322,15 +326,16 @@ export default function AdminDashboard() {
                   <h3 className="text-lg font-semibold text-gray-900">
                     System Reports
                   </h3>
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-green-600 ml-auto" />
                 </div>
                 <p className="text-gray-600">
-                  View system analytics and reports
+                  View detailed analytics and reports
                 </p>
               </button>
 
               <button
                 onClick={handleSystemSettings}
-                className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow cursor-pointer text-left hover:bg-purple-50"
+                className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-shadow cursor-pointer text-left hover:bg-purple-50 group"
               >
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="bg-purple-100 p-2 rounded-xl">
@@ -339,6 +344,7 @@ export default function AdminDashboard() {
                   <h3 className="text-lg font-semibold text-gray-900">
                     System Settings
                   </h3>
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-purple-600 ml-auto" />
                 </div>
                 <p className="text-gray-600">Configure system preferences</p>
               </button>

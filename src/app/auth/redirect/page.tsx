@@ -1,4 +1,3 @@
-// src/app/auth/redirect/page.tsx - NO AUTH VERSION
 "use client";
 
 import { useEffect } from "react";

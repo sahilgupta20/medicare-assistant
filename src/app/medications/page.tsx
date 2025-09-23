@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
+import { AlertTriangle } from "lucide-react";
 import {
   ArrowLeft,
   Plus,
@@ -714,6 +715,7 @@ export default function MedicationsPage() {
                     </p>
                     <p className="text-sm text-gray-500">
                       Logged in as: {user?.name} ({user?.role})
+                      {permissions.isViewOnly && " - View Only Access"}
                     </p>
                   </div>
                 </div>
@@ -740,25 +742,43 @@ export default function MedicationsPage() {
                   )}
                 </button>
 
-                {permissions.canAddMedications && (
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl text-xl font-semibold flex items-center space-x-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 group"
-                  >
-                    <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
-                    <span>Add New Medicine</span>
-                  </button>
-                )}
-
-                {!permissions.canAddMedications && (
-                  <div className="text-sm text-gray-500 bg-gray-100 px-4 py-3 rounded-2xl font-medium">
-                    View-only access ({user?.role})
-                  </div>
-                )}
+                <div className="flex items-center space-x-4">
+                  {permissions.canAddMedications ? (
+                    <button
+                      onClick={() => setShowAddForm(true)}
+                      className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl text-xl font-semibold flex items-center space-x-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 group"
+                    >
+                      <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
+                      <span>Add New Medicine</span>
+                    </button>
+                  ) : (
+                    <div className="text-sm text-gray-500 bg-gray-100 px-4 py-3 rounded-2xl font-medium">
+                      View-only access ({user?.role})
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </header>
+        {permissions.isViewOnly && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="flex items-center">
+                <div className="flex">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    <strong>View-Only Access:</strong> You can view medications
+                    but cannot make changes. Contact an administrator or
+                    caregiver to modify medications.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="max-w-7xl mx-auto px-6 pt-6">
           <VoiceInterface
@@ -865,23 +885,25 @@ export default function MedicationsPage() {
                               )}
                             </div>
 
-                            {isTaken ? (
-                              <div className="bg-green-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold flex items-center space-x-2">
-                                <CheckCircle2 className="h-6 w-6" />
-                                <span>Taken!</span>
-                              </div>
-                            ) : permissions.canMarkTaken ? (
-                              <button
-                                onClick={() => handleMarkTaken(med.id, time)}
-                                className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 shadow-lg transform hover:scale-105"
-                              >
-                                I took this
-                              </button>
-                            ) : (
-                              <div className="bg-gray-300 text-gray-600 px-8 py-4 rounded-2xl text-lg font-semibold">
-                                View Only
-                              </div>
-                            )}
+                            <div className="flex items-center">
+                              {isTaken ? (
+                                <div className="bg-green-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold flex items-center space-x-2">
+                                  <CheckCircle2 className="h-6 w-6" />
+                                  <span>Taken!</span>
+                                </div>
+                              ) : permissions.canMarkTaken ? (
+                                <button
+                                  onClick={() => handleMarkTaken(med.id, time)}
+                                  className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 shadow-lg transform hover:scale-105"
+                                >
+                                  I took this
+                                </button>
+                              ) : (
+                                <div className="bg-gray-300 text-gray-600 px-8 py-4 rounded-2xl text-lg font-semibold">
+                                  View Only ({user?.role})
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -919,7 +941,7 @@ export default function MedicationsPage() {
                       }`}
                     >
                       <div className="absolute top-4 right-4 flex space-x-2">
-                        {permissions.canEdit && (
+                        {permissions.canEditMedications && (
                           <button
                             onClick={() => handleEditMedication(med)}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-300"
@@ -928,7 +950,7 @@ export default function MedicationsPage() {
                             <Edit3 className="h-5 w-5" />
                           </button>
                         )}
-                        {permissions.canDelete && (
+                        {permissions.canDeleteMedications && (
                           <button
                             onClick={() => handleDeleteMedication(med.id)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all duration-300"
@@ -937,6 +959,12 @@ export default function MedicationsPage() {
                             <Trash2 className="h-5 w-5" />
                           </button>
                         )}
+                        {!permissions.canEditMedications &&
+                          !permissions.canDeleteMedications && (
+                            <div className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                              View Only
+                            </div>
+                          )}
                       </div>
 
                       <div className="mb-8">

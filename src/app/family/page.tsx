@@ -159,6 +159,39 @@ export default function FamilyPage() {
     }
   };
 
+  // Add this to your src/app/family/page.tsx
+
+  const familyPermissions = {
+    canManageFamily: user?.role === "ADMIN",
+    canSendUpdates:
+      user?.role === "ADMIN" ||
+      user?.role === "SENIOR" ||
+      user?.role === "CAREGIVER" ||
+      user?.role === "FAMILY",
+    canResolveAlerts:
+      user?.role === "ADMIN" ||
+      user?.role === "SENIOR" ||
+      user?.role === "CAREGIVER" ||
+      user?.role === "FAMILY",
+    canViewFamily: true,
+    canAddFamily:
+      user?.role === "ADMIN" ||
+      user?.role === "SENIOR" ||
+      user?.role === "CAREGIVER",
+    canViewStatus: true,
+    canReceiveAlerts:
+      user?.role === "FAMILY" ||
+      user?.role === "ADMIN" ||
+      user?.role === "SENIOR" ||
+      user?.role === "CAREGIVER",
+    canManageMedications: user?.role === "ADMIN" || user?.role === "CAREGIVER",
+    canViewMedicalData:
+      user?.role === "ADMIN" ||
+      user?.role === "DOCTOR" ||
+      user?.role === "CAREGIVER",
+    isReadOnlyAccess: user?.role === "FAMILY" || user?.role === "DOCTOR",
+  };
+
   const fetchActiveAlerts = async () => {
     try {
       const response = await fetch("/api/emergency-alerts");

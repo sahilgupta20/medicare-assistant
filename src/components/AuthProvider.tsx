@@ -15,7 +15,6 @@ export function AuthProvider({ children, session }: AuthProviderProps) {
     setHasMounted(true);
   }, []);
 
-  // Show loading or render with SessionProvider - never without it
   if (!hasMounted) {
     return (
       <SessionProvider session={session} refetchInterval={5 * 60}>

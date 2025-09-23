@@ -8,6 +8,20 @@ import { BarChart3, TrendingUp, Activity, Users } from "lucide-react";
 export default function AnalyticsPage() {
   const { user } = useAuth();
 
+  const analyticsPermissions = {
+    canViewAllReports: user?.role === "ADMIN",
+    canExportData: user?.role === "ADMIN" || user?.role === "DOCTOR",
+    canViewMedicalAnalytics:
+      user?.role === "ADMIN" ||
+      user?.role === "DOCTOR" ||
+      user?.role === "CAREGIVER",
+    canViewComplianceReports:
+      user?.role === "ADMIN" ||
+      user?.role === "DOCTOR" ||
+      user?.role === "CAREGIVER",
+    canViewCareAnalytics: user?.role === "ADMIN" || user?.role === "CAREGIVER",
+  };
+
   return (
     <ProtectedRoute requiredRoles={["ADMIN", "DOCTOR", "CAREGIVER"]}>
       <Navigation />

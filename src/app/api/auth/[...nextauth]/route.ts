@@ -1,3 +1,4 @@
+// src/app/api/auth/[...nextauth]/route.ts - UPDATED WITH STRICT RBAC
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -23,8 +24,23 @@ const demoUsers = [
     name: "Raj Singh",
     role: "FAMILY",
   },
+  {
+    id: "4",
+    email: "caregiver@medicare.com",
+    password: "password",
+    name: "Nurse Johnson",
+    role: "CAREGIVER",
+  },
+  {
+    id: "5",
+    email: "doctor@medicare.com",
+    password: "password",
+    name: "Dr. Smith",
+    role: "DOCTOR",
+  },
 ];
 
+// 🔒 STRICT ROLE-BASED DEFAULT ROUTES
 const getDefaultRouteForRole = (role: string): string => {
   switch (role) {
     case "ADMIN":
@@ -32,17 +48,17 @@ const getDefaultRouteForRole = (role: string): string => {
     case "SENIOR":
       return "/medications";
     case "FAMILY":
-      return "/family";
+      return "/family"; // Raj Singh goes here
     case "CAREGIVER":
       return "/medications";
     case "DOCTOR":
       return "/analytics";
     default:
-      return "/medications";
+      return "/family";
   }
 };
 
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -76,8 +92,8 @@ const handler = NextAuth({
   ],
 
   session: {
-    strategy: "jwt",
-    maxAge: 24 * 60 * 60,
+    strategy: "jwt" as const,
+    maxAge: 24 * 60 * 60, // 24 hours
   },
 
   secret:
@@ -94,6 +110,7 @@ const handler = NextAuth({
       if (user) {
         token.role = user.role;
         token.name = user.name;
+        token.id = user.id;
       }
       return token;
     },
@@ -101,7 +118,7 @@ const handler = NextAuth({
     async session({ session, token }) {
       console.log("📱 Session callback - token role:", token.role);
       if (token && session.user) {
-        session.user.id = token.sub;
+        session.user.id = token.sub || token.id;
         session.user.role = token.role;
         session.user.name = token.name;
       }
@@ -112,24 +129,40 @@ const handler = NextAuth({
     async redirect({ url, baseUrl }) {
       console.log("🔄 Redirect callback - URL:", url, "BaseURL:", baseUrl);
 
-      // Handle signout - redirect to signin page
+      // Handle signout
       if (url.includes("/api/auth/signout") || url.includes("signout")) {
         console.log("🔄 Signout detected, redirecting to signin");
         return `${baseUrl}/auth/signin`;
       }
 
-      // Handle signin success - redirect based on role
-      if (url.includes("/api/auth/callback/credentials")) {
-        console.log("🔄 Successful signin callback detected");
-
-        return `${baseUrl}/medications`;
+      // Prevent infinite redirect loops
+      if (url.includes("/auth/signin")) {
+        console.log("🔄 Already on signin page, staying there");
+        return url;
       }
 
+      // Handle successful signin callback
+      if (url.includes("/api/auth/callback/credentials")) {
+        console.log(
+          "🔄 Successful signin callback - letting client handle redirect"
+        );
+        return `${baseUrl}/medications`; // Default fallback
+      }
+
+      // Handle relative URLs
+      if (url.startsWith("/")) {
+        const fullUrl = `${baseUrl}${url}`;
+        console.log("🔄 Relative URL converted to:", fullUrl);
+        return fullUrl;
+      }
+
+      // Handle same domain URLs
       if (url.startsWith(baseUrl)) {
         console.log("🔄 Same domain redirect:", url);
         return url;
       }
 
+      // Default to base URL
       console.log("🔄 Default redirect to base URL");
       return baseUrl;
     },
@@ -138,6 +171,7 @@ const handler = NextAuth({
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signin",
+    error: "/auth/signin",
   },
 
   cookies: {
@@ -147,7 +181,7 @@ const handler = NextAuth({
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
         domain: undefined,
       },
     },
@@ -157,9 +191,14 @@ const handler = NextAuth({
     async signOut({ token }) {
       console.log("🔄 SignOut event triggered for user:", token?.name);
     },
+    async signIn({ user, account, profile }) {
+      console.log(`🔄 SignIn event - User: ${user.name} (${user.role})`);
+    },
   },
 
-  debug: true,
-});
+  debug: process.env.NODE_ENV === "development",
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

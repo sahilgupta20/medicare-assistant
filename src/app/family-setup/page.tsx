@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Navigation } from "@/components/Navigation";
+import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 
 interface FamilyMember {
@@ -35,16 +36,13 @@ interface FamilyMember {
 }
 
 export default function FamilySetupPage() {
+  const { user } = useAuth();
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [currentUser, setCurrentUser] = useState<{
-    role: string;
-    id: string;
-  } | null>(null);
 
   const [newMember, setNewMember] = useState<FamilyMember>({
     name: "",
@@ -61,10 +59,6 @@ export default function FamilySetupPage() {
       preferred_method: "both",
     },
   });
-
-  useEffect(() => {
-    setCurrentUser({ role: "admin", id: "user123" });
-  }, []);
 
   useEffect(() => {
     fetchFamilyMembers();
@@ -84,7 +78,25 @@ export default function FamilySetupPage() {
     }
   };
 
-  // Form validation
+  const familySetupPermissions = {
+    canAddFamilyMembers:
+      user?.role === "ADMIN" ||
+      user?.role === "SENIOR" ||
+      user?.role === "CAREGIVER",
+    canEditFamilyMembers:
+      user?.role === "ADMIN" ||
+      user?.role === "SENIOR" ||
+      user?.role === "CAREGIVER",
+    canDeleteFamilyMembers:
+      user?.role === "ADMIN" || user?.role === "CAREGIVER",
+    canManageOwnFamily:
+      user?.role === "ADMIN" ||
+      user?.role === "SENIOR" ||
+      user?.role === "CAREGIVER",
+    canManageProfessionally:
+      user?.role === "ADMIN" || user?.role === "CAREGIVER",
+    isViewOnly: user?.role === "FAMILY" || user?.role === "DOCTOR",
+  };
   const validateForm = (member: FamilyMember): Record<string, string> => {
     const errors: Record<string, string> = {};
 
@@ -145,7 +157,7 @@ export default function FamilySetupPage() {
   };
 
   const handleDeleteMember = async (id: string) => {
-    if (!currentUser || currentUser.role !== "admin") {
+    if (!user || user.role !== "ADMIN") {
       alert("Only administrators can delete family members");
       return;
     }
@@ -176,10 +188,7 @@ export default function FamilySetupPage() {
   };
 
   const handleEditMember = (member: FamilyMember) => {
-    if (
-      !currentUser ||
-      (currentUser.role !== "admin" && currentUser.id !== member.id)
-    ) {
+    if (!user || (user.role !== "admin" && user.id !== member.id)) {
       alert("You can only edit your own profile");
       return;
     }
@@ -232,8 +241,8 @@ export default function FamilySetupPage() {
   };
 
   // Permission checks
-  const canAddMembers = currentUser?.role === "admin";
-  const canDeleteMembers = currentUser?.role === "admin";
+  const canAddMembers = user?.role === "admin";
+  const canDeleteMembers = user?.role === "admin";
 
   const relationshipOptions = [
     "Daughter",
@@ -298,7 +307,7 @@ export default function FamilySetupPage() {
                 </div>
               </div>
 
-              {canAddMembers && (
+              {familySetupPermissions.canAddFamilyMembers && (
                 <button
                   onClick={() => setShowAddForm(true)}
                   className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center space-x-2"
@@ -308,7 +317,7 @@ export default function FamilySetupPage() {
                 </button>
               )}
 
-              {!canAddMembers && (
+              {!familySetupPermissions.canAddFamilyMembers && (
                 <div className="text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
                   Contact admin to add new members
                 </div>
@@ -437,7 +446,7 @@ export default function FamilySetupPage() {
                           <span>Edit</span>
                         </button>
 
-                        {canDeleteMembers && (
+                        {familySetupPermissions.canDeleteFamilyMembers && (
                           <button
                             onClick={() => handleDeleteMember(member.id!)}
                             className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium flex items-center justify-center space-x-1"
@@ -445,6 +454,20 @@ export default function FamilySetupPage() {
                             <Trash2 className="h-4 w-4" />
                             <span>Delete</span>
                           </button>
+                        )}
+                        {familySetupPermissions.isViewOnly && (
+                          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                            <div className="flex">
+                              <div className="ml-3">
+                                <p className="text-sm text-yellow-700">
+                                  <strong>View-Only Access:</strong> You can
+                                  view family members but cannot make changes.
+                                  Contact an administrator to modify family
+                                  settings.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>

@@ -419,7 +419,8 @@ export default function FamilyPage() {
                 )}
 
                 {/* Manage Family - Only ADMIN and SENIOR can manage family */}
-                {(user?.role === "ADMIN" || user?.role === "SENIOR") && (
+                {/* Family Management - Role-specific buttons */}
+                {user?.role === "ADMIN" ? (
                   <Link
                     href="/family-setup"
                     className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-2xl text-lg font-semibold flex items-center space-x-2 transition-all duration-300 shadow-lg"
@@ -427,7 +428,20 @@ export default function FamilyPage() {
                     <Plus className="h-5 w-5" />
                     <span>Manage Family</span>
                   </Link>
-                )}
+                ) : user?.role === "SENIOR" ? (
+                  <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-2xl text-lg font-semibold flex items-center space-x-2">
+                    <Eye className="h-5 w-5" />
+                    <span>Family View</span>
+                  </div>
+                ) : user?.role === "CAREGIVER" ? (
+                  <Link
+                    href="/family-setup"
+                    className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-2xl text-lg font-semibold flex items-center space-x-2 transition-all duration-300"
+                  >
+                    <Eye className="h-5 w-5" />
+                    <span>View Family Setup</span>
+                  </Link>
+                ) : null}
 
                 {/* View-only indicator for restricted users */}
                 {user?.role === "DOCTOR" && (

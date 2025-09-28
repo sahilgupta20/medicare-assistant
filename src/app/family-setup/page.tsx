@@ -79,16 +79,15 @@ export default function FamilySetupPage() {
   };
 
   const familySetupPermissions = {
-    canAddFamilyMembers:
-      user?.role === "ADMIN" ||
-      user?.role === "SENIOR" ||
-      user?.role === "CAREGIVER",
-    canEditFamilyMembers:
-      user?.role === "ADMIN" ||
-      user?.role === "SENIOR" ||
-      user?.role === "CAREGIVER",
-    canDeleteFamilyMembers:
-      user?.role === "ADMIN" || user?.role === "CAREGIVER",
+    canAddFamilyMembers: user?.role === "ADMIN" || user?.role === "SENIOR",
+    canEditFamilyMembers: user?.role === "ADMIN" || user?.role === "SENIOR",
+    canDeleteFamilyMembers: user?.role === "ADMIN",
+    canViewFamilyMembers: true,
+    isViewOnly:
+      user?.role === "CAREGIVER" ||
+      user?.role === "FAMILY" ||
+      user?.role === "DOCTOR",
+
     canManageOwnFamily:
       user?.role === "ADMIN" ||
       user?.role === "SENIOR" ||
@@ -96,6 +95,39 @@ export default function FamilySetupPage() {
     canManageProfessionally:
       user?.role === "ADMIN" || user?.role === "CAREGIVER",
     isViewOnly: user?.role === "FAMILY" || user?.role === "DOCTOR",
+
+    getHeaderText: () => {
+      switch (user?.role) {
+        case "ADMIN":
+          return "Family Management";
+        case "SENIOR":
+          return "My Family Setup";
+        case "CAREGIVER":
+          return "Family Overview";
+        case "FAMILY":
+          return "Family Information";
+        case "DOCTOR":
+          return "Patient Family";
+        default:
+          return "Family Setup";
+      }
+    },
+    getHeaderDescription: () => {
+      switch (user?.role) {
+        case "ADMIN":
+          return "Manage family members for medication alerts";
+        case "SENIOR":
+          return "Manage your family members and care team";
+        case "CAREGIVER":
+          return "View family members and contact information";
+        case "FAMILY":
+          return "View family member information";
+        case "DOCTOR":
+          return "Patient's family and emergency contacts";
+        default:
+          return "Family member management";
+      }
+    },
   };
   const validateForm = (member: FamilyMember): Record<string, string> => {
     const errors: Record<string, string> = {};
@@ -299,10 +331,10 @@ export default function FamilySetupPage() {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    Family Setup
+                    {familySetupPermissions.getHeaderText()}
                   </h1>
                   <p className="text-gray-600">
-                    Manage family members for medication alerts
+                    {familySetupPermissions.getHeaderDescription()}
                   </p>
                 </div>
               </div>
@@ -326,6 +358,19 @@ export default function FamilySetupPage() {
           </div>
         </header>
 
+        {familySetupPermissions.isViewOnly && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div className="flex">
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <strong>View-Only Access:</strong> You can view family members
+                  but cannot make changes. Contact an administrator to modify
+                  family settings.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Existing Family Members */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">

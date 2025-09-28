@@ -28,33 +28,35 @@ export function Navigation() {
   if (!isAuthenticated) return null;
 
   // 🎯 CLEAN ROLE-BASED NAVIGATION - User-friendly labels
+  // ✅ FIXED: Role-specific navigation labels
   const getNavigationItems = (userRole: string) => {
     switch (userRole) {
       case "ADMIN":
         return [
-          { name: "Dashboard", href: "/admin", icon: Home },
+          { name: "Admin Panel", href: "/admin", icon: Shield },
           { name: "Medications", href: "/medications", icon: Pill },
           { name: "Family", href: "/family", icon: Users },
-          { name: "Reports", href: "/analytics", icon: BarChart3 },
-          { name: "Settings", href: "/family-setup", icon: Settings },
+          { name: "Analytics", href: "/analytics", icon: BarChart3 },
+          { name: "Family Management", href: "/family-setup", icon: Settings },
         ];
 
       case "SENIOR":
         return [
           { name: "My Medications", href: "/medications", icon: Pill },
-          { name: "Family", href: "/family", icon: Users },
+          { name: "Family Circle", href: "/family", icon: Users },
+          { name: "Family Setup", href: "/family-setup", icon: Settings },
         ];
-
-      case "FAMILY":
-        return [{ name: "Family Dashboard", href: "/family", icon: Users }];
 
       case "CAREGIVER":
         return [
           { name: "Medications", href: "/medications", icon: Pill },
           { name: "Family", href: "/family", icon: Users },
-          { name: "Reports", href: "/analytics", icon: BarChart3 },
-          { name: "Settings", href: "/family-setup", icon: Settings },
+          { name: "Analytics", href: "/analytics", icon: BarChart3 },
+          { name: "Family Overview", href: "/family-setup", icon: Eye },
         ];
+
+      case "FAMILY":
+        return [{ name: "Family Dashboard", href: "/family", icon: Users }];
 
       case "DOCTOR":
         return [
@@ -69,7 +71,6 @@ export function Navigation() {
 
   const navigationItems = getNavigationItems(user?.role || "");
 
-  // 🎨 ROLE-BASED COLORS - Subtle and professional
   const getRoleTheme = (role: string) => {
     switch (role) {
       case "ADMIN":

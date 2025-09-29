@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, MessageCircle, HelpCircle } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import {
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  MessageCircle,
+  HelpCircle,
+} from "lucide-react";
 
 interface VoiceInterfaceProps {
   medications?: any[];
@@ -12,34 +19,33 @@ interface VoiceInterfaceProps {
 const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
   medications = [],
   takenMedications = new Set(),
-  onMedicationTaken
+  onMedicationTaken,
 }) => {
-  // State for voice interface
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const [lastCommand, setLastCommand] = useState('');
-  const [lastResponse, setLastResponse] = useState('');
+  const [lastCommand, setLastCommand] = useState("");
+  const [lastResponse, setLastResponse] = useState("");
   const [confidence, setConfidence] = useState(0);
   const [showCommands, setShowCommands] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [voiceService, setVoiceService] = useState<any>(null);
 
-  // Check browser support and import voice service
   useEffect(() => {
     const checkSupport = () => {
-      const supported = ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) && 'speechSynthesis' in window;
+      const supported =
+        ("SpeechRecognition" in window ||
+          "webkitSpeechRecognition" in window) &&
+        "speechSynthesis" in window;
       setIsSupported(supported);
     };
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       checkSupport();
-      
-      // Import voice service
-      import('../lib/voice-interface').then(({ voiceInterfaceService }) => {
+
+      import("../lib/voice-interface").then(({ voiceInterfaceService }) => {
         if (voiceInterfaceService) {
           setVoiceService(voiceInterfaceService);
-          
-          // Set up state listener
+
           voiceInterfaceService.setStateChangeListener((state) => {
             setIsListening(state.isListening);
             setLastCommand(state.lastCommand);
@@ -47,7 +53,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
             setConfidence(state.confidence);
           });
 
-          // Set up medication taken callback
           if (onMedicationTaken) {
             voiceInterfaceService.setMedicationTakenCallback(onMedicationTaken);
           }
@@ -58,10 +63,16 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
 
   // Update medications when they change
   useEffect(() => {
-    if (medications.length > 0 && voiceService && typeof window !== 'undefined') {
-      import('../lib/voice-interface').then(({ integrateVoiceWithMedications }) => {
-        integrateVoiceWithMedications(medications, takenMedications);
-      });
+    if (
+      medications.length > 0 &&
+      voiceService &&
+      typeof window !== "undefined"
+    ) {
+      import("../lib/voice-interface").then(
+        ({ integrateVoiceWithMedications }) => {
+          integrateVoiceWithMedications(medications, takenMedications);
+        }
+      );
     }
   }, [medications, takenMedications, voiceService]);
 
@@ -70,7 +81,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
     if (voiceService) {
       voiceService.startListening();
     } else {
-      setLastResponse('Voice service not ready. Please wait a moment and try again.');
+      setLastResponse(
+        "Voice service not ready. Please wait a moment and try again."
+      );
     }
   };
 
@@ -83,8 +96,10 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
   const testVoice = () => {
     if (voiceService) {
       voiceService.testVoice();
-    } else if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance('Voice interface is loading. Please wait a moment.');
+    } else if ("speechSynthesis" in window) {
+      const utterance = new SpeechSynthesisUtterance(
+        "Voice interface is loading. Please wait a moment."
+      );
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -94,7 +109,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
         <div className="flex items-center gap-2">
           <VolumeX className="h-5 w-5 text-yellow-600" />
-          <span className="text-yellow-800">Voice features not supported on this browser</span>
+          <span className="text-yellow-800">
+            Voice features not supported on this browser
+          </span>
         </div>
       </div>
     );
@@ -106,7 +123,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
     "I took my blood pressure pill",
     "What time should I take my vitamins?",
     "How are you doing?",
-    "Thank you for helping me"
+    "Thank you for helping me",
   ];
 
   if (isMinimized) {
@@ -115,9 +132,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
         <button
           onClick={() => setIsMinimized(false)}
           className={`w-16 h-16 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
-            isListening 
-              ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-              : 'bg-blue-500 hover:bg-blue-600'
+            isListening
+              ? "bg-red-500 hover:bg-red-600 animate-pulse"
+              : "bg-blue-500 hover:bg-blue-600"
           }`}
         >
           {isListening ? (
@@ -138,11 +155,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
             <Volume2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Voice Assistant</h2>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Voice Assistant
+            </h2>
             <p className="text-gray-600">Talk to me about your medications</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCommands(!showCommands)}
@@ -151,7 +170,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
           >
             <HelpCircle className="h-5 w-5" />
           </button>
-          
+
           <button
             onClick={() => setIsMinimized(true)}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -162,7 +181,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
         </div>
       </div>
 
-      {/* Voice Commands Help */}
       {showCommands && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
           <h3 className="font-semibold text-blue-800 mb-2">Try saying:</h3>
@@ -183,8 +201,8 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
           onClick={isListening ? stopListening : startListening}
           className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
             isListening
-              ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
+              ? "bg-red-500 hover:bg-red-600 text-white animate-pulse"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}
         >
           {isListening ? (
@@ -209,7 +227,6 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
         </button>
       </div>
 
-      {/* Status Display */}
       {(lastCommand || lastResponse) && (
         <div className="space-y-3">
           {lastCommand && (
@@ -231,7 +248,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
                 <Volume2 className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-blue-800">MediCare responded:</span>
+                <span className="font-medium text-blue-800">
+                  MediCare responded:
+                </span>
               </div>
               <p className="text-blue-700">"{lastResponse}"</p>
             </div>
@@ -248,16 +267,16 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
               Click "Start Voice Assistant" and say "Hey MediCare" to begin
             </p>
             <div className="text-sm text-gray-500">
-              You can talk naturally - ask questions, have conversations, or give commands
+              You can talk naturally - ask questions, have conversations, or
+              give commands
             </div>
           </div>
         </div>
       )}
 
-      {/* Browser Permissions Note */}
       <div className="mt-4 text-xs text-gray-500 text-center">
-        Voice features require microphone permission. 
-        If prompted, please allow microphone access.
+        Voice features require microphone permission. If prompted, please allow
+        microphone access.
       </div>
     </div>
   );

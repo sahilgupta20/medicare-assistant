@@ -72,7 +72,7 @@ export const middleware = withAuth(
       rolePermissions[userRole as keyof typeof rolePermissions];
 
     if (!userPermissions) {
-      console.log(`❌ Unknown role: ${userRole}, redirecting to signin`);
+      console.log(` Unknown role: ${userRole}, redirecting to signin`);
       return NextResponse.redirect(new URL("/auth/signin", req.url));
     }
 
@@ -152,13 +152,6 @@ export const middleware = withAuth(
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc.)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|icon-|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon-|demo|login|auth|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.ico).*)",
   ],
 };

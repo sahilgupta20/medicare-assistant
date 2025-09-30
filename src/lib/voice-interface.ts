@@ -450,15 +450,22 @@ export function integrateVoiceWithMedications(
 ) {
   if (typeof window === "undefined" || !voiceInterfaceService) return;
 
-  const voiceMedications: MedicationData[] = medications.flatMap((med) =>
-    med.times.split(",").map((time: string) => ({
+  const voiceMedications: MedicationData[] = medications.flatMap((med) => {
+    // 🔧 FIX: Handle both string and array
+    const timesArray = Array.isArray(med.times)
+      ? med.times
+      : typeof med.times === "string"
+      ? med.times.split(",").map((t: string) => t.trim())
+      : [];
+
+    return timesArray.map((time: string) => ({
       id: `${med.id}-${time}`,
       name: med.name,
       dosage: med.dosage,
       times: [time],
       isTaken: takenMedications.has(`${med.id}-${time}`),
-    }))
-  );
+    }));
+  });
 
   voiceInterfaceService.updateMedications(voiceMedications);
 }

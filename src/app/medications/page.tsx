@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Navigation } from "@/components/Navigation";
-import { PageHeader } from "@/components/PageHeader";
 import { AlertTriangle } from "lucide-react";
 import {
   ArrowLeft,
@@ -34,7 +33,7 @@ type Medication = {
   name: string;
   dosage: string;
   description?: string;
-  times: string;
+  times: string | string[];
   color?: string;
   shape?: string;
   photoUrl?: string;
@@ -55,12 +54,6 @@ type MedicationFormData = {
   isActive: boolean;
 };
 
-// interface CurrentUser {
-//   id: string;
-//   role: "admin" | "caregiver" | "family" | "senior";
-//   name: string;
-// }
-
 export default function MedicationsPage() {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,11 +66,6 @@ export default function MedicationsPage() {
   const [currentIST, setCurrentIST] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
-  const [reminderTimeouts, setReminderTimeouts] = useState<Map<string, number>>(
-    new Map()
-  );
-
-  // Role-based access control
 
   const { data: session, status } = useSession();
   const user = session?.user;
@@ -98,12 +86,11 @@ export default function MedicationsPage() {
     isActive: true,
   });
 
-  interface TimeSlot {
-    id: string;
-    hour: number;
-    minute: number;
-    enabled: boolean;
-  }
+  const getTimesArray = (times: string | string[]): string[] => {
+    if (Array.isArray(times)) return times;
+    if (typeof times === "string") return times.split(",").map((t) => t.trim());
+    return [];
+  };
 
   const getCurrentIST = () => {
     return new Date().toLocaleString("en-IN", {
@@ -132,21 +119,12 @@ export default function MedicationsPage() {
     }
   };
 
-  // Update IST time every second
   useEffect(() => {
     const updateIST = () => setCurrentIST(getCurrentIST());
     updateIST();
     const interval = setInterval(updateIST, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  // useEffect(() => {
-  //   setCurrentUser({
-  //     id: "user123",
-  //     role: "admin",
-  //     name: "Sahil",
-  //   });
-  // }, []);
 
   const permissions = {
     canAddMedications:
@@ -167,7 +145,7 @@ export default function MedicationsPage() {
   };
 
   useEffect(() => {
-    if (status === "loading") return; // Still loading
+    if (status === "loading") return;
     if (status === "unauthenticated") {
       window.location.href = "/auth/signin";
       return;
@@ -208,37 +186,54 @@ export default function MedicationsPage() {
           "08:00"
         );
       };
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
       (window as any).escalationService = emergencyEscalationService;
-      console.log("Escalation service exposed to window");
     }
   }, []);
+  const [remindersScheduled, setRemindersScheduled] = useState(false);
+  const lastMedicationCount = useRef(0);
 
   useEffect(() => {
-    if (medications.length > 0 && notificationsEnabled) {
+    if (medications.length !== lastMedicationCount.current) {
+      lastMedicationCount.current = medications.length;
+      setRemindersScheduled(false);
+    }
+
+    if (medications.length > 0 && notificationsEnabled && !remindersScheduled) {
       console.log(
-        "Auto-scheduling reminders for",
+        "🔔 Auto-scheduling reminders for",
         medications.length,
         "medications"
       );
+
       const timeoutId = setTimeout(() => {
         scheduleAllReminders();
+        setRemindersScheduled(true);
       }, 1000);
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
-  }, [medications, notificationsEnabled]);
+  }, [medications.length, notificationsEnabled, remindersScheduled]);
 
   const fetchMedications = async () => {
     try {
       const response = await fetch("/api/medications");
       if (response.ok) {
         const data = await response.json();
-        setMedications(data);
+
+        const normalizedData = data.map((med: any) => ({
+          ...med,
+          times: Array.isArray(med.times)
+            ? med.times
+            : typeof med.times === "string"
+            ? med.times.split(",").map((t: string) => t.trim())
+            : [],
+        }));
+
+        console.log("✅ Medications normalized:", normalizedData.length);
+        console.log("📋 First med times:", normalizedData[0]?.times);
+        setMedications(normalizedData);
       }
     } catch (error) {
       console.error("Error fetching medications:", error);
@@ -276,106 +271,37 @@ export default function MedicationsPage() {
   const checkNotificationPermission = () => {
     if ("Notification" in window) {
       const permission = Notification.permission;
-      console.log("🔔 Current notification permission:", permission);
+      console.log(" Current notification permission:", permission);
       setNotificationsEnabled(permission === "granted");
-
-      if (permission === "default") {
-        console.log("ℹ Notifications not yet requested");
-      } else if (permission === "denied") {
-        console.log(
-          " Notifications denied - user needs to enable in browser settings"
-        );
-      }
-    } else {
-      console.error(" Notifications not supported in this browser");
     }
   };
-
-  // const testBrowserSupport = () => {
-  //   console.log('Browser support check:')
-  //   console.log('- Notifications supported:', 'Notification' in window)
-  //   console.log('- Current permission:', Notification.permission)
-  //   console.log('- Service Worker supported:', 'serviceWorker' in navigator)
-  // }
 
   const enableNotifications = async () => {
     console.log(" Bell button clicked!");
 
     try {
-      console.log("Current permission:", Notification.permission);
       const notificationService = NotificationService.getInstance();
 
       if (!notificationService) {
-        console.error(" Notification service not available");
         alert("Notification service not available. Please refresh the page.");
         return;
       }
 
-      console.log(" Requesting permission...");
       const granted = await notificationService.requestPermission();
-      console.log(" Permission result:", granted);
-
       setNotificationsEnabled(granted);
 
       if (granted && medications.length > 0) {
-        console.log(
-          " Scheduling reminders for",
-          medications.length,
-          "medications"
-        );
         scheduleAllReminders();
-
-        // Test notification
         await notificationService.testNotifications();
-        console.log(" Test notification sent");
-
         alert(
-          "Notifications enabled! You should receive reminders at scheduled times."
+          "Notifications enabled! You'll receive reminders at scheduled times."
         );
       } else if (!granted) {
-        alert(
-          "Please allow notifications in your browser settings to receive medication reminders."
-        );
+        alert("Please allow notifications in browser settings.");
       }
     } catch (error) {
-      console.error(" Error in enableNotifications:", error);
-      alert("Failed to enable notifications. Please check browser settings.");
-    }
-  };
-  const testImmediateNotification = async () => {
-    console.log(" Testing immediate notification...");
-
-    try {
-      const notificationService = NotificationService.getInstance();
-
-      if (Notification.permission !== "granted") {
-        const granted = await notificationService.requestPermission();
-        if (!granted) return;
-      }
-
-      // Create a test medication for right now
-      const now = new Date();
-      const testTime = `${now.getHours().toString().padStart(2, "0")}:${now
-        .getMinutes()
-        .toString()
-        .padStart(2, "0")}`;
-
-      const testMedication = {
-        id: "test-immediate",
-        name: "Test Medicine",
-        dosage: "1 tablet",
-        times: [testTime],
-        scheduledTime: testTime,
-      };
-
-      await notificationService.showMedicationReminder(
-        testMedication,
-        testTime
-      );
-      console.log("✅ Immediate test notification sent");
-    } catch (error) {
-      console.error(" Test notification failed:", error);
-      alert("Test notification failed: " + error.message);
+      console.error("Error enabling notifications:", error);
+      alert("Failed to enable notifications.");
     }
   };
 
@@ -386,7 +312,14 @@ export default function MedicationsPage() {
     }
 
     setIsScheduling(true);
-    console.log("Scheduling all reminders...");
+    console.log("🔔 Scheduling all reminders...");
+
+    medications.forEach((med) => {
+      console.log(`📋 ${med.name}:`);
+      console.log(`  - times type: ${typeof med.times}`);
+      console.log(`  - times value:`, med.times);
+      console.log(`  - is array: ${Array.isArray(med.times)}`);
+    });
 
     const notificationService = NotificationService.getInstance();
     if (!notificationService) {
@@ -395,7 +328,7 @@ export default function MedicationsPage() {
     }
 
     notificationService.scheduleReminders(medications);
-    console.log("All reminders scheduled!");
+    console.log("✅ All reminders scheduled!");
 
     setTimeout(() => setIsScheduling(false), 1000);
   };
@@ -404,13 +337,11 @@ export default function MedicationsPage() {
     medication: MedicationFormData
   ): Record<string, string> => {
     const errors: Record<string, string> = {};
-
     if (!medication.name.trim()) errors.name = "Medication name is required";
     if (!medication.dosage.trim()) errors.dosage = "Dosage is required";
     if (medication.times.length === 0)
       errors.times = "At least one time is required";
     if (!medication.startDate) errors.startDate = "Start date is required";
-
     return errors;
   };
 
@@ -429,7 +360,6 @@ export default function MedicationsPage() {
 
     const errors = validateForm(formData);
     setFormErrors(errors);
-    console.log("Validation errors:", errors);
 
     if (Object.keys(errors).length > 0) return;
 
@@ -440,33 +370,19 @@ export default function MedicationsPage() {
         : "/api/medications";
       const method = editingMedication ? "PUT" : "POST";
 
-      const payload = {
-        ...formData,
-        times: formData.times.join(","),
-      };
-      console.log("Sending to API:", payload);
-
       const response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           times: formData.times.join(","),
         }),
       });
-      console.log("API Response status:", response.status);
 
       if (response.ok) {
         await fetchMedications();
         resetForm();
-
-        alert(
-          editingMedication
-            ? "Medication updated successfully!"
-            : "Medication added successfully!"
-        );
+        alert(editingMedication ? "Medication updated!" : "Medication added!");
       } else {
         const errorData = await response.json();
         alert(`Error: ${errorData.error || "Failed to save medication"}`);
@@ -485,12 +401,7 @@ export default function MedicationsPage() {
       return;
     }
 
-    if (
-      !confirm(
-        "Are you sure you want to remove this medication? This action cannot be undone."
-      )
-    )
-      return;
+    if (!confirm("Are you sure you want to remove this medication?")) return;
 
     try {
       const response = await fetch(`/api/medications?id=${id}`, {
@@ -500,9 +411,6 @@ export default function MedicationsPage() {
       if (response.ok) {
         await fetchMedications();
         alert("Medication deleted successfully!");
-      } else {
-        const errorData = await response.json();
-        alert(`Error: ${errorData.error || "Failed to delete medication"}`);
       }
     } catch (error) {
       console.error("Error deleting medication:", error);
@@ -517,13 +425,15 @@ export default function MedicationsPage() {
     }
 
     setEditingMedication(medication);
+    const timesArray = getTimesArray(medication.times);
+
     setFormData({
       name: medication.name,
       dosage: medication.dosage,
       description: medication.description || "",
       color: medication.color || "",
       shape: medication.shape || "",
-      times: medication.times.split(",").map((t) => t.trim()),
+      times: timesArray,
       startDate: medication.startDate || new Date().toISOString().split("T")[0],
       endDate: medication.endDate || "",
       isActive: medication.isActive !== undefined ? medication.isActive : true,
@@ -563,14 +473,9 @@ export default function MedicationsPage() {
       const [hours, minutes] = scheduledTime.split(":").map(Number);
       scheduledDateTime.setHours(hours, minutes, 0, 0);
 
-      console.log("Debug - Original time:", scheduledTime);
-      console.log("Debug - Created datetime:", scheduledDateTime.toISOString());
-
       const response = await fetch("/api/medication-logs", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           medicationId,
           status: "TAKEN",
@@ -580,48 +485,33 @@ export default function MedicationsPage() {
 
       if (response.ok) {
         const takenKey = `${medicationId}-${scheduledTime}`;
-        console.log("Marking as taken:", takenKey);
         setTakenMedications((prev) => new Set([...prev, takenKey]));
 
         const notificationService = NotificationService.getInstance();
         await notificationService.medicationTaken(medicationId);
         await emergencyEscalationService?.medicationTaken(medicationId);
 
-        console.log("Emergency escalation cancelled for:", medicationId);
-
-        voiceInterfaceService.updateMedications(
-          medications.flatMap((med) =>
-            med.times.split(",").map((time) => ({
-              id: `${med.id}-${time.trim()}`,
+        voiceInterfaceService?.updateMedications(
+          medications.flatMap((med) => {
+            const timesArray = getTimesArray(med.times);
+            return timesArray.map((time) => ({
+              id: `${med.id}-${time}`,
               name: med.name,
               dosage: med.dosage,
-              times: [time.trim()],
+              times: [time],
               isTaken:
-                takenMedications.has(`${med.id}-${time.trim()}`) ||
-                takenKey === `${med.id}-${time.trim()}`,
-            }))
-          )
+                takenMedications.has(`${med.id}-${time}`) ||
+                takenKey === `${med.id}-${time}`,
+            }));
+          })
         );
 
         alert("Medication marked as taken! Great job staying healthy!");
-      } else {
-        const errorData = await response.json();
-        console.error("API error:", errorData);
-        alert("Something went wrong. Please try again.");
       }
     } catch (error) {
       console.error("Error logging medication:", error);
       alert("Something went wrong. Please try again.");
     }
-  };
-
-  const handleTimeToggle = (time: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      times: prev.times.includes(time)
-        ? prev.times.filter((t) => t !== time)
-        : [...prev.times, time],
-    }));
   };
 
   const addTimeSlot = () => {
@@ -633,7 +523,6 @@ export default function MedicationsPage() {
 
   const removeTimeSlot = (index: number) => {
     if (formData.times.length <= 1) return;
-
     setFormData((prev) => ({
       ...prev,
       times: prev.times.filter((_, i) => i !== index),
@@ -657,7 +546,7 @@ export default function MedicationsPage() {
       </div>
     );
   }
-  // Not authenticated
+
   if (status === "unauthenticated") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 flex items-center justify-center">
@@ -669,10 +558,6 @@ export default function MedicationsPage() {
   }
 
   return (
-    // <ProtectedRoute
-    //   allowUnauthenticated={true}
-    //   requiredRoles={["ADMIN", "SENIOR", "CAREGIVER", "DOCTOR"]}
-    // >
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-rose-50 to-purple-50 relative overflow-hidden">
@@ -681,7 +566,6 @@ export default function MedicationsPage() {
           <div className="absolute bottom-40 left-32 w-20 h-20 bg-gradient-to-br from-green-200 to-emerald-300 rounded-full opacity-40"></div>
         </div>
 
-        {/* Header */}
         <header className="bg-white/80 backdrop-blur-lg shadow-lg sticky top-0 z-20 border-b border-white/20">
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex items-center justify-between">
@@ -762,18 +646,16 @@ export default function MedicationsPage() {
             </div>
           </div>
         </header>
+
         {permissions.isViewOnly && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
             <div className="max-w-7xl mx-auto px-6">
               <div className="flex items-center">
-                <div className="flex">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                </div>
+                <AlertTriangle className="h-5 w-5 text-yellow-400" />
                 <div className="ml-3">
                   <p className="text-sm text-yellow-700">
                     <strong>View-Only Access:</strong> You can view medications
-                    but cannot make changes. Contact an administrator or
-                    caregiver to modify medications.
+                    but cannot make changes.
                   </p>
                 </div>
               </div>
@@ -788,14 +670,13 @@ export default function MedicationsPage() {
             onMedicationTaken={(medicationId) => {
               const time = medicationId.split("-")[1];
               const medId = medicationId.split("-")[0];
-              if (time) {
-                handleMarkTaken(medId, time);
-              }
+              if (time) handleMarkTaken(medId, time);
             }}
           />
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-10">
+          {/* 🔧 FIXED: Today's Schedule Section */}
           <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 rounded-[2.5rem] shadow-2xl p-10 mb-12 border border-white/50 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-100/20 to-purple-100/20 rounded-[2.5rem]"></div>
 
@@ -828,9 +709,13 @@ export default function MedicationsPage() {
                 </div>
               ) : (
                 <div className="grid gap-6">
-                  {medications.flatMap((med) =>
-                    med.times.split(",").map((time) => {
-                      const takenKey = `${med.id}-${time}`;
+                  {medications.flatMap((med) => {
+                    // 🔧 FIX: Use helper function
+                    const timesArray = getTimesArray(med.times);
+
+                    return timesArray.map((time) => {
+                      const trimmedTime = time.trim();
+                      const takenKey = `${med.id}-${trimmedTime}`;
                       const isTaken = takenMedications.has(takenKey);
 
                       return (
@@ -864,7 +749,7 @@ export default function MedicationsPage() {
                                     isTaken ? "text-green-800" : "text-rose-800"
                                   }`}
                                 >
-                                  {time.trim()} ({formatTimeForIST(time.trim())}
+                                  {trimmedTime} ({formatTimeForIST(trimmedTime)}
                                   )
                                 </div>
                               </div>
@@ -894,7 +779,9 @@ export default function MedicationsPage() {
                                 </div>
                               ) : permissions.canMarkTaken ? (
                                 <button
-                                  onClick={() => handleMarkTaken(med.id, time)}
+                                  onClick={() =>
+                                    handleMarkTaken(med.id, trimmedTime)
+                                  }
                                   className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 shadow-lg transform hover:scale-105"
                                 >
                                   I took this
@@ -908,8 +795,8 @@ export default function MedicationsPage() {
                           </div>
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })}
                 </div>
               )}
             </div>
@@ -932,120 +819,120 @@ export default function MedicationsPage() {
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 gap-8">
-                  {medications.map((med, index) => (
-                    <div
-                      key={med.id}
-                      className={`bg-white/80 backdrop-blur-sm border-2 rounded-3xl p-8 hover:shadow-xl transition-all duration-500 group relative overflow-hidden ${
-                        index % 2 === 0
-                          ? "border-rose-200 hover:border-rose-300"
-                          : "border-emerald-200 hover:border-emerald-300"
-                      }`}
-                    >
-                      <div className="absolute top-4 right-4 flex space-x-2">
-                        {permissions.canEditMedications && (
-                          <button
-                            onClick={() => handleEditMedication(med)}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-300"
-                            title="Edit medication"
-                          >
-                            <Edit3 className="h-5 w-5" />
-                          </button>
-                        )}
-                        {permissions.canDeleteMedications && (
-                          <button
-                            onClick={() => handleDeleteMedication(med.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all duration-300"
-                            title="Delete medication"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        )}
-                        {!permissions.canEditMedications &&
-                          !permissions.canDeleteMedications && (
-                            <div className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
-                              View Only
-                            </div>
-                          )}
-                      </div>
+                  {medications.map((med, index) => {
+                    const timesArray = getTimesArray(med.times);
 
-                      <div className="mb-8">
-                        <h3 className="text-3xl font-bold text-gray-800 mb-3">
-                          {med.name}
-                        </h3>
-                        <div className="flex items-center space-x-4 mb-4">
-                          <span
-                            className={`px-4 py-2 rounded-2xl text-lg font-semibold ${
-                              index % 2 === 0
-                                ? "bg-rose-100 text-rose-800"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
-                            {med.dosage}
-                          </span>
+                    return (
+                      <div
+                        key={med.id}
+                        className={`bg-white/80 backdrop-blur-sm border-2 rounded-3xl p-8 hover:shadow-xl transition-all duration-500 group relative overflow-hidden ${
+                          index % 2 === 0
+                            ? "border-rose-200 hover:border-rose-300"
+                            : "border-emerald-200 hover:border-emerald-300"
+                        }`}
+                      >
+                        <div className="absolute top-4 right-4 flex space-x-2">
+                          {permissions.canEditMedications && (
+                            <button
+                              onClick={() => handleEditMedication(med)}
+                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-xl transition-all duration-300"
+                              title="Edit medication"
+                            >
+                              <Edit3 className="h-5 w-5" />
+                            </button>
+                          )}
+                          {permissions.canDeleteMedications && (
+                            <button
+                              onClick={() => handleDeleteMedication(med.id)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all duration-300"
+                              title="Delete medication"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          )}
+                          {!permissions.canEditMedications &&
+                            !permissions.canDeleteMedications && (
+                              <div className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                                View Only
+                              </div>
+                            )}
                         </div>
 
-                        {med.description && (
-                          <p className="text-gray-600 mb-4">
-                            {med.description}
-                          </p>
-                        )}
-
-                        <div className="space-y-2 mb-6">
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span>
-                              <strong>Times (IST):</strong>
+                        <div className="mb-8">
+                          <h3 className="text-3xl font-bold text-gray-800 mb-3">
+                            {med.name}
+                          </h3>
+                          <div className="flex items-center space-x-4 mb-4">
+                            <span
+                              className={`px-4 py-2 rounded-2xl text-lg font-semibold ${
+                                index % 2 === 0
+                                  ? "bg-rose-100 text-rose-800"
+                                  : "bg-emerald-100 text-emerald-800"
+                              }`}
+                            >
+                              {med.dosage}
                             </span>
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            {med.times.split(",").map((time) => {
-                              const timeFormatted = time.trim();
-                              const time12Hour =
-                                formatTimeForIST(timeFormatted);
 
-                              return (
-                                <span
-                                  key={timeFormatted}
-                                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
-                                >
-                                  {timeFormatted} ({time12Hour})
-                                </span>
-                              );
-                            })}
-                          </div>
-                          {(med.color || med.shape) && (
-                            <div className="flex items-center space-x-4 text-sm text-gray-600">
-                              {med.color && (
-                                <span>
-                                  <strong>Color:</strong> {med.color}
-                                </span>
-                              )}
-                              {med.shape && (
-                                <span>
-                                  <strong>Shape:</strong> {med.shape}
-                                </span>
-                              )}
-                            </div>
+                          {med.description && (
+                            <p className="text-gray-600 mb-4">
+                              {med.description}
+                            </p>
                           )}
+
+                          <div className="space-y-2 mb-6">
+                            <div className="flex items-center space-x-4 text-sm text-gray-600">
+                              <span>
+                                <strong>Times (IST):</strong>
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {timesArray.map((time) => {
+                                const timeFormatted = time.trim();
+                                const time12Hour =
+                                  formatTimeForIST(timeFormatted);
+
+                                return (
+                                  <span
+                                    key={timeFormatted}
+                                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
+                                  >
+                                    {timeFormatted} ({time12Hour})
+                                  </span>
+                                );
+                              })}
+                            </div>
+                            {(med.color || med.shape) && (
+                              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                {med.color && (
+                                  <span>
+                                    <strong>Color:</strong> {med.color}
+                                  </span>
+                                )}
+                                {med.shape && (
+                                  <span>
+                                    <strong>Shape:</strong> {med.shape}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                          <Camera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500">
+                            Add photo of medication
+                          </p>
                         </div>
                       </div>
-
-                      <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
-                        <Camera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500">Add photo of medication</p>
-                        {permissions.canEdit && (
-                          <button className="mt-2 text-blue-600 hover:text-blue-700 font-medium">
-                            Take Photo
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Add/Edit New Medication Form */}
           {showAddForm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
               <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1155,7 +1042,6 @@ export default function MedicationsPage() {
                           placeholder="e.g., Blue, White"
                         />
                       </div>
-
                       <div>
                         <label className="block text-xl font-medium text-gray-700 mb-2">
                           Shape
@@ -1181,7 +1067,6 @@ export default function MedicationsPage() {
                         IST)
                       </label>
 
-                      {/* Quick Time Presets */}
                       <div className="mb-4">
                         <p className="text-sm text-gray-600 mb-2">
                           Quick presets:
@@ -1212,7 +1097,6 @@ export default function MedicationsPage() {
                         </div>
                       </div>
 
-                      {/* Custom Time Slots */}
                       <div className="space-y-3 mb-4">
                         {formData.times.map((time, index) => (
                           <div
@@ -1226,7 +1110,6 @@ export default function MedicationsPage() {
                               </span>
                             </div>
 
-                            {/* Hour Selector */}
                             <select
                               value={time.split(":")[0]}
                               onChange={(e) => {
@@ -1252,7 +1135,6 @@ export default function MedicationsPage() {
                               :
                             </span>
 
-                            {/* Minute Selector */}
                             <select
                               value={time.split(":")[1] || "00"}
                               onChange={(e) => {
@@ -1279,7 +1161,6 @@ export default function MedicationsPage() {
                               ({time} IST - {formatTimeForIST(time)})
                             </span>
 
-                            {/* Remove Time Button */}
                             {formData.times.length > 1 && (
                               <button
                                 type="button"
@@ -1293,7 +1174,6 @@ export default function MedicationsPage() {
                           </div>
                         ))}
 
-                        {/* Add Time Button */}
                         <button
                           type="button"
                           onClick={addTimeSlot}
@@ -1416,78 +1296,3 @@ export default function MedicationsPage() {
     </>
   );
 }
-// Replace your existing window.checkAuth() function with this:
-// Add this to your medications page or any page where you need auth checking
-
-window.checkAuth = async () => {
-  try {
-    // Check NextAuth session (not cookies, as NextAuth uses httpOnly cookies)
-    const sessionResponse = await fetch("/api/auth/session");
-    const session = await sessionResponse.json();
-
-    console.log("🔍 Session check:", session);
-
-    if (session && session.user) {
-      console.log("✅ AUTHENTICATED");
-      console.log("👤 User:", session.user.name);
-      console.log("📧 Email:", session.user.email);
-      console.log("🛡️ Role:", session.user.role);
-      console.log("⏰ Expires:", session.expires);
-
-      // Store user info globally for easy access
-      window.currentUser = session.user;
-      window.userRole = session.user.role;
-
-      return true;
-    } else {
-      console.log("❌ NOT AUTHENTICATED");
-      window.currentUser = null;
-      window.userRole = null;
-      return false;
-    }
-  } catch (error) {
-    console.error("❌ Auth check failed:", error);
-    return false;
-  }
-};
-
-// Helper functions for role-based access
-window.isAdmin = () => window.userRole === "ADMIN";
-window.isSenior = () => window.userRole === "SENIOR";
-window.isFamily = () => window.userRole === "FAMILY";
-window.isCaregiver = () => window.userRole === "CAREGIVER";
-window.isDoctor = () => window.userRole === "DOCTOR";
-
-// Quick role-based redirect function
-window.redirectBasedOnRole = () => {
-  const role = window.userRole;
-  switch (role) {
-    case "ADMIN":
-      window.location.href = "/admin/dashboard";
-      break;
-    case "SENIOR":
-      window.location.href = "/medications";
-      break;
-    case "FAMILY":
-      window.location.href = "/family";
-      break;
-    case "CAREGIVER":
-    case "DOCTOR":
-      window.location.href = "/caregiver";
-      break;
-    default:
-      window.location.href = "/auth/signin";
-  }
-};
-
-// Test all functions
-console.log("🔧 Updated auth functions loaded!");
-console.log("📝 Available functions:");
-console.log("  - window.checkAuth()");
-console.log("  - window.isAdmin()");
-console.log("  - window.isSenior()");
-console.log("  - window.isFamily()");
-console.log("  - window.redirectBasedOnRole()");
-
-// Auto-run the check
-window.checkAuth();

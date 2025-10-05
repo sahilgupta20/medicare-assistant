@@ -38,11 +38,16 @@ export default function AdminDashboard() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showUserManagement, setShowUserManagement] = useState(false);
 
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{
+    name: string;
+    email: string;
+    role: "ADMIN" | "SENIOR" | "FAMILY" | "CAREGIVER" | "DOCTOR";
+    status: "active" | "inactive";
+  }>({
     name: "",
     email: "",
-    role: "SENIOR" as const,
-    status: "active" as const,
+    role: "SENIOR",
+    status: "active",
   });
 
   const demoUsers: User[] = [

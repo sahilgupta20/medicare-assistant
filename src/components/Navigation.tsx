@@ -27,8 +27,6 @@ export function Navigation() {
 
   if (!isAuthenticated) return null;
 
-  // 🎯 CLEAN ROLE-BASED NAVIGATION - User-friendly labels
-  // ✅ FIXED: Role-specific navigation labels
   const getNavigationItems = (userRole: string) => {
     switch (userRole) {
       case "ADMIN":

@@ -1,4 +1,3 @@
-// src/app/api/auth/[...nextauth]/route.ts - UPDATED WITH STRICT RBAC
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -40,7 +39,6 @@ const demoUsers = [
   },
 ];
 
-// 🔒 STRICT ROLE-BASED DEFAULT ROUTES
 const getDefaultRouteForRole = (role: string): string => {
   switch (role) {
     case "ADMIN":
@@ -48,7 +46,7 @@ const getDefaultRouteForRole = (role: string): string => {
     case "SENIOR":
       return "/medications";
     case "FAMILY":
-      return "/family"; // Raj Singh goes here
+      return "/family";
     case "CAREGIVER":
       return "/medications";
     case "DOCTOR":
@@ -58,7 +56,7 @@ const getDefaultRouteForRole = (role: string): string => {
   }
 };
 
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -67,16 +65,16 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("🔐 Login attempt:", credentials?.email);
+        console.log(" Login attempt:", credentials?.email);
 
         if (!credentials?.email || !credentials?.password) {
-          console.log("❌ Missing credentials");
+          console.log(" Missing credentials");
           return null;
         }
 
         const user = demoUsers.find((u) => u.email === credentials.email);
         if (user && user.password === credentials.password) {
-          console.log("✅ User found:", user.name, user.role);
+          console.log(" User found:", user.name, user.role);
           return {
             id: user.id,
             email: user.email,
@@ -85,7 +83,7 @@ export const authOptions = {
           };
         }
 
-        console.log("❌ Invalid login");
+        console.log(" Invalid login");
         return null;
       },
     }),
@@ -129,40 +127,35 @@ export const authOptions = {
     async redirect({ url, baseUrl }) {
       console.log("🔄 Redirect callback - URL:", url, "BaseURL:", baseUrl);
 
-      // Handle signout
       if (url.includes("/api/auth/signout") || url.includes("signout")) {
         console.log("🔄 Signout detected, redirecting to signin");
         return `${baseUrl}/auth/signin`;
       }
 
-      // Prevent infinite redirect loops
       if (url.includes("/auth/signin")) {
         console.log("🔄 Already on signin page, staying there");
         return url;
       }
 
-      // Handle successful signin callback
       if (url.includes("/api/auth/callback/credentials")) {
         console.log(
           "🔄 Successful signin callback - letting client handle redirect"
         );
-        return `${baseUrl}/medications`; // Default fallback
+        return `${baseUrl}/medications`;
       }
 
-      // Handle relative URLs
       if (url.startsWith("/")) {
         const fullUrl = `${baseUrl}${url}`;
         console.log("🔄 Relative URL converted to:", fullUrl);
         return fullUrl;
       }
 
-      // Handle same domain URLs
+      // Same domain
       if (url.startsWith(baseUrl)) {
         console.log("🔄 Same domain redirect:", url);
         return url;
       }
 
-      // Default to base URL
       console.log("🔄 Default redirect to base URL");
       return baseUrl;
     },
@@ -191,14 +184,12 @@ export const authOptions = {
     async signOut({ token }) {
       console.log("🔄 SignOut event triggered for user:", token?.name);
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user }) {
       console.log(`🔄 SignIn event - User: ${user.name} (${user.role})`);
     },
   },
 
   debug: process.env.NODE_ENV === "development",
-};
-
-const handler = NextAuth(authOptions);
+});
 
 export { handler as GET, handler as POST };

@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       summary: notificationData,
       notifications,
       stats: {
-        totalRecipients: senior.caregivers.length,
+        totalRecipients: senior.familyMembersAsSenior.length,
         successful: notifications.filter((n) => n.status === "sent").length,
         failed: notifications.filter((n) => n.status === "failed").length,
       },

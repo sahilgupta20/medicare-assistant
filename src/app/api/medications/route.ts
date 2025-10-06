@@ -106,9 +106,11 @@ export async function POST(request: NextRequest) {
     console.log("✅ Created medication:", medication.id);
     return NextResponse.json(medication, { status: 201 });
   } catch (error) {
-    console.error("❌ Error creating medication:", error);
+    console.error(" Error creating medication:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create medication", details: error.message },
+      { error: "Failed to create medication", details: errorMessage },
       { status: 500 }
     );
   }

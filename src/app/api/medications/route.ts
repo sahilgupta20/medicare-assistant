@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("✅ Created medication:", medication.id);
+    console.log(" Created medication:", medication.id);
     return NextResponse.json(medication, { status: 201 });
   } catch (error) {
     console.error(" Error creating medication:", error);
@@ -213,7 +213,6 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error(" Error updating medication:", error);
 
-    // Handle specific Prisma errors
     const prismaError = error as { code?: string };
 
     if (prismaError.code === "P2025") {
@@ -223,8 +222,11 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
     return NextResponse.json(
-      { error: "Failed to update medication", details: error.message },
+      { error: "Failed to update medication", details: errorMessage },
       { status: 500 }
     );
   }

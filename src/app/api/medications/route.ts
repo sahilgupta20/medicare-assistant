@@ -208,13 +208,15 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    console.log("✅ Updated medication:", updatedMedication.id);
+    console.log(" Updated medication:", updatedMedication.id);
     return NextResponse.json(updatedMedication);
   } catch (error) {
-    console.error("❌ Error updating medication:", error);
+    console.error(" Error updating medication:", error);
 
     // Handle specific Prisma errors
-    if (error.code === "P2025") {
+    const prismaError = error as { code?: string };
+
+    if (prismaError.code === "P2025") {
       return NextResponse.json(
         { error: "Medication not found" },
         { status: 404 }
@@ -241,7 +243,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log("🗑️ Deleting medication:", id);
+    console.log(" Deleting medication:", id);
 
     // Check if medication exists
     const existingMedication = await prisma.medication.findUnique({
@@ -270,16 +272,17 @@ export async function DELETE(request: NextRequest) {
     //   where: { id }
     // })
 
-    console.log("✅ Deleted medication:", id);
+    console.log(" Deleted medication:", id);
     return NextResponse.json({
       message: "Medication deleted successfully",
       success: true,
     });
   } catch (error) {
-    console.error("❌ Error deleting medication:", error);
+    console.error(" Error deleting medication:", error);
 
     // Handle specific Prisma errors
-    if (error.code === "P2025") {
+    const prismaError = error as { code?: string };
+    if (prismaError.code === "P2025") {
       return NextResponse.json(
         { error: "Medication not found" },
         { status: 404 }
@@ -287,7 +290,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Failed to delete medication", details: error.message },
+      {
+        error: "Failed to delete medication",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

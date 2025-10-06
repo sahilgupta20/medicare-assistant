@@ -11,11 +11,7 @@ export async function POST(request: NextRequest) {
     const senior = await prisma.user.findUnique({
       where: { id: seniorId },
       include: {
-        caregivers: {
-          include: {
-            caregiver: true,
-          },
-        },
+        familyMembersAsSenior: true,
       },
     });
 
@@ -23,7 +19,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Senior not found" }, { status: 404 });
     }
 
-    // Get recent medication data for context
     const recentLogs = await prisma.medicationLog.findMany({
       where: {
         medication: {
@@ -77,11 +72,8 @@ export async function POST(request: NextRequest) {
     // Send notifications to all family members
     const notifications = [];
 
-    for (const caregiver of senior.caregivers) {
-      const familyMember = caregiver.caregiver;
-
+    for (const familyMember of senior.familyMembersAsSenior) {
       try {
-        // Send email notification
         if (familyMember.email) {
           const emailSent = await sendEmailNotification(
             familyMember.email,

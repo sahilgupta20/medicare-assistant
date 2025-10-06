@@ -83,10 +83,6 @@ export default function FamilySetupPage() {
     canEditFamilyMembers: user?.role === "ADMIN" || user?.role === "SENIOR",
     canDeleteFamilyMembers: user?.role === "ADMIN",
     canViewFamilyMembers: true,
-    isViewOnly:
-      user?.role === "CAREGIVER" ||
-      user?.role === "FAMILY" ||
-      user?.role === "DOCTOR",
 
     canManageOwnFamily:
       user?.role === "ADMIN" ||

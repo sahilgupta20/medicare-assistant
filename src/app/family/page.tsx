@@ -199,8 +199,8 @@ export default function FamilyPage() {
         const alerts = await response.json();
 
         const activeAlertsOnly = alerts
-          .filter((alert) => alert.status === "active")
-          .map((alert) => ({
+          .filter((alert: any) => alert.status === "active")
+          .map((alert: any) => ({
             id: alert.id,
             medicationId: alert.medicationId,
             medicationName: alert.medication?.name || "Unknown Medication",

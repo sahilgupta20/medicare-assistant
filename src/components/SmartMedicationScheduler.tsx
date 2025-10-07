@@ -65,7 +65,7 @@ export default function SmartMedicationScheduler({
   >([]);
   const [newSchedule, setNewSchedule] = useState({
     time: "08:00",
-    frequency: "daily" as const,
+    frequency: "daily",
     reminderMinutesBefore: 15,
     withFood: false,
     specialInstructions: "",

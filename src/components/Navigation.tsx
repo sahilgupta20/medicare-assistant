@@ -1,4 +1,3 @@
-// src/components/Navigation.tsx - IMPROVED CLEAN VERSION
 "use client";
 
 import { useState } from "react";
@@ -18,6 +17,7 @@ import {
   User,
   Home,
   Bell,
+  Eye,
 } from "lucide-react";
 
 export function Navigation() {

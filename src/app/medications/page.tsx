@@ -312,10 +312,10 @@ export default function MedicationsPage() {
     }
 
     setIsScheduling(true);
-    console.log("🔔 Scheduling all reminders...");
+    console.log(" Scheduling all reminders...");
 
     medications.forEach((med) => {
-      console.log(`📋 ${med.name}:`);
+      console.log(` ${med.name}:`);
       console.log(`  - times type: ${typeof med.times}`);
       console.log(`  - times value:`, med.times);
       console.log(`  - is array: ${Array.isArray(med.times)}`);
@@ -327,8 +327,16 @@ export default function MedicationsPage() {
       return;
     }
 
-    notificationService.scheduleReminders(medications);
-    console.log("✅ All reminders scheduled!");
+    // Convert times to array format before scheduling
+    const medicationsForScheduling = medications.map((med) => ({
+      ...med,
+      times: Array.isArray(med.times)
+        ? med.times
+        : med.times.split(",").map((t) => t.trim()),
+    }));
+
+    notificationService.scheduleReminders(medicationsForScheduling);
+    console.log(" All reminders scheduled!");
 
     setTimeout(() => setIsScheduling(false), 1000);
   };

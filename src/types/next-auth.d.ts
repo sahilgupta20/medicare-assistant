@@ -20,3 +20,12 @@ declare module "next-auth/jwt" {
     role: string;
   }
 }
+
+declare global {
+  interface Window {
+    voiceInterfaceSetup?: boolean;
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
+export {};

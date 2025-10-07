@@ -63,7 +63,20 @@ export default function SmartMedicationScheduler({
       medications: string[];
     }>
   >([]);
-  const [newSchedule, setNewSchedule] = useState({
+  type FrequencyType =
+    | "daily"
+    | "weekly"
+    | "as_needed"
+    | "twice_daily"
+    | "three_times_daily";
+
+  const [newSchedule, setNewSchedule] = useState<{
+    time: string;
+    frequency: FrequencyType;
+    reminderMinutesBefore: number;
+    withFood: boolean;
+    specialInstructions: string;
+  }>({
     time: "08:00",
     frequency: "daily",
     reminderMinutesBefore: 15,

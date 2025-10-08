@@ -5,7 +5,7 @@ interface FamilyMember {
   name: string;
   email: string;
   phone?: string;
-  relationship: 'daughter' | 'son' | 'spouse' | 'caregiver' | 'other';
+  relationship: "daughter" | "son" | "spouse" | "caregiver" | "other";
   isEmergencyContact: boolean;
   notificationPreferences: {
     email: boolean;
@@ -37,7 +37,7 @@ interface EscalationLevel {
   name: string;
   delayMinutes: number;
   actions: string[];
-  recipients: ('primary' | 'emergency' | 'all')[];
+  recipients: ("primary" | "emergency" | "all")[];
 }
 
 class EmergencyEscalationService {
@@ -51,122 +51,137 @@ class EmergencyEscalationService {
       name: "Gentle Reminder",
       delayMinutes: 0.25,
       actions: ["gentle_notification", "audio_reminder"],
-      recipients: []
+      recipients: [],
     },
     {
-      level: 2, 
+      level: 2,
       name: "Firm Reminder",
       delayMinutes: 0.5,
       actions: ["firm_notification", "louder_audio", "screen_flash"],
-      recipients: []
+      recipients: [],
     },
     {
       level: 3,
       name: "Family Alert",
       delayMinutes: 1,
       actions: ["family_notification", "email_alert"],
-      recipients: ["primary"]
+      recipients: ["primary"],
     },
     {
       level: 4,
-      name: "Emergency Escalation", 
+      name: "Emergency Escalation",
       delayMinutes: 1.5,
       actions: ["emergency_notification", "phone_call", "sms_alert"],
-      recipients: ["emergency", "all"]
-    }
+      recipients: ["emergency", "all"],
+    },
   ];
 
-  constructor() {    
-     this.familyMembers = [];
-   console.log('Emergency escalation service initialized - will load family from database when needed');
+  constructor() {
+    this.familyMembers = [];
+    console.log(
+      "Emergency escalation service initialized - will load family from database when needed"
+    );
   }
 
   // Load family members from database with  error handling
   private async loadFamilyMembersFromDatabase(): Promise<FamilyMember[]> {
-  try {
-    console.log('Loading family members from database...');
-    const response = await fetch('/api/family-members');
-    
-    if (response.ok) {
-      const members = await response.json();
-      console.log('Raw database members:', members);
-      
-      if (members && members.length > 0) {
-        const mappedMembers = members.map(member => {
-          let preferences;
-          try {
-            preferences = typeof member.notificationPreferences === 'string' 
-              ? JSON.parse(member.notificationPreferences)
-              : member.notificationPreferences;
-          } catch (e) {
-            preferences = {
-              email: true,
-              sms: true,
-              pushNotification: true,
-              quietHours: { start: "22:00", end: "07:00" }
-            };
-          }
-
-          return {
-            id: member.id,
-            name: member.name,
-            email: member.email,
-            phone: member.phone,
-            relationship: member.relationship.toLowerCase(),
-            isEmergencyContact: member.isEmergencyContact,
-            notificationPreferences: preferences
-          };
-        });
-        
-        console.log('Successfully loaded family members:', mappedMembers.map(m => m.name));
-        return mappedMembers;
-      }
-    }
-  } catch (error) {
-    console.error('Error loading family members:', error);
-  }
-  
-  console.log('No family members found in database');
-  return []; 
-}
-
-
-public async testEscalation() {
-  console.log('Testing escalation with database family members...');
-  await this.reportMissedMedication(
-    'cmf56aanx0003unv4zzl88tqw',
-    'Blood Pressure Medicine', 
-    '10mg', 
-    '08:00'
-  );
-}
-
-  private async createEmergencyAlert(medicationId: string, medicationName: string, severity: string, message: string) {
     try {
-      const response = await fetch('/api/emergency-alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      console.log("Loading family members from database...");
+      const response = await fetch("/api/family-members");
+
+      if (response.ok) {
+        const members = await response.json();
+        console.log("Raw database members:", members);
+
+        if (members && members.length > 0) {
+          const mappedMembers = members.map((member: any) => {
+            let preferences;
+            try {
+              preferences =
+                typeof member.notificationPreferences === "string"
+                  ? JSON.parse(member.notificationPreferences)
+                  : member.notificationPreferences;
+            } catch (e) {
+              preferences = {
+                email: true,
+                sms: true,
+                pushNotification: true,
+                quietHours: { start: "22:00", end: "07:00" },
+              };
+            }
+
+            return {
+              id: member.id,
+              name: member.name,
+              email: member.email,
+              phone: member.phone,
+              relationship: member.relationship.toLowerCase(),
+              isEmergencyContact: member.isEmergencyContact,
+              notificationPreferences: preferences,
+            };
+          });
+
+          console.log(
+            "Successfully loaded family members:",
+            mappedMembers.map((m) => m.name)
+          );
+          return mappedMembers;
+        }
+      }
+    } catch (error) {
+      console.error("Error loading family members:", error);
+    }
+
+    console.log("No family members found in database");
+    return [];
+  }
+
+  public async testEscalation() {
+    console.log("Testing escalation with database family members...");
+    await this.reportMissedMedication(
+      "cmf56aanx0003unv4zzl88tqw",
+      "Blood Pressure Medicine",
+      "10mg",
+      "08:00"
+    );
+  }
+
+  private async createEmergencyAlert(
+    medicationId: string,
+    medicationName: string,
+    severity: string,
+    message: string
+  ) {
+    try {
+      const response = await fetch("/api/emergency-alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           medicationId,
           medicationName,
-          alertType: 'missed_dose',
+          alertType: "missed_dose",
           severity,
           message,
-          escalationLevel: 1
-        })
+          escalationLevel: 1,
+        }),
       });
 
       if (response.ok) {
         const alert = await response.json();
-        console.log(' Emergency alert created in database:', alert.id);
+        console.log(" Emergency alert created in database:", alert.id);
         return alert;
       }
     } catch (error) {
-      console.error(' Failed to create emergency alert:', error);
+      console.error(" Failed to create emergency alert:", error);
     }
   }
 
-  async reportMissedMedication(medicationId: string, medicationName: string, dosage: string, scheduledTime: string) {
+  async reportMissedMedication(
+    medicationId: string,
+    medicationName: string,
+    dosage: string,
+    scheduledTime: string
+  ) {
     console.log(` Medication missed: ${medicationName} at ${scheduledTime}`);
 
     const missedMed: MissedMedication = {
@@ -175,7 +190,7 @@ public async testEscalation() {
       dosage,
       scheduledTime,
       missedAt: new Date(),
-      attemptCount: 0
+      attemptCount: 0,
     };
 
     this.missedMedications.set(medicationId, missedMed);
@@ -193,10 +208,12 @@ public async testEscalation() {
   private async executeEscalationLevel(medicationId: string, level: number) {
     const missedMed = this.missedMedications.get(medicationId);
     const escalationLevel = this.escalationLevels[level - 1];
-    
+
     if (!missedMed || !escalationLevel) return;
 
-    console.log(` Executing escalation level ${level}: ${escalationLevel.name} for ${missedMed.medicationName}`);
+    console.log(
+      ` Executing escalation level ${level}: ${escalationLevel.name} for ${missedMed.medicationName}`
+    );
 
     missedMed.attemptCount = level;
     missedMed.lastReminderAt = new Date();
@@ -213,7 +230,11 @@ public async testEscalation() {
       const nextLevel = this.escalationLevels[level];
       const delayMs = nextLevel.delayMinutes * 60 * 1000;
 
-      console.log(` Scheduling next escalation level ${level + 1} in ${nextLevel.delayMinutes} minutes`);
+      console.log(
+        ` Scheduling next escalation level ${level + 1} in ${
+          nextLevel.delayMinutes
+        } minutes`
+      );
 
       const timerId = window.setTimeout(() => {
         if (this.missedMedications.has(medicationId)) {
@@ -262,27 +283,43 @@ public async testEscalation() {
   }
 
   // Main family notification method
-  private async notifyFamily(missedMed: MissedMedication, escalationLevel: EscalationLevel) {
-    console.log(`Notifying family members for escalation level ${escalationLevel.level}`);
+  private async notifyFamily(
+    missedMed: MissedMedication,
+    escalationLevel: EscalationLevel
+  ) {
+    console.log(
+      `Notifying family members for escalation level ${escalationLevel.level}`
+    );
 
     // Create database alert
     await this.createEmergencyAlert(
-      missedMed.medicationId, 
-      missedMed.medicationName, 
-      escalationLevel.level >= 3 ? 'high' : 'medium',
+      missedMed.medicationId,
+      missedMed.medicationName,
+      escalationLevel.level >= 3 ? "high" : "medium",
       `${missedMed.medicationName} missed at ${missedMed.scheduledTime}`
     );
 
     // ALWAYS load fresh from database
     const familyMembers = await this.loadFamilyMembersFromDatabase();
-    console.log('Active family members for notifications:', familyMembers.map(m => `${m.name} (${m.email})`));
-    
-    const recipients = this.getFamilyRecipients(escalationLevel.recipients, familyMembers);
-    console.log('Notification recipients:', recipients.map(r => r.name));
-    
+    console.log(
+      "Active family members for notifications:",
+      familyMembers.map((m) => `${m.name} (${m.email})`)
+    );
+
+    const recipients = this.getFamilyRecipients(
+      escalationLevel.recipients,
+      familyMembers
+    );
+    console.log(
+      "Notification recipients:",
+      recipients.map((r) => r.name)
+    );
+
     for (const member of recipients) {
       if (this.isInQuietHours(member)) {
-        console.log(`Skipping notification to ${member.name} due to quiet hours`);
+        console.log(
+          `Skipping notification to ${member.name} due to quiet hours`
+        );
         continue;
       }
 
@@ -290,26 +327,34 @@ public async testEscalation() {
     }
   }
 
-  private async sendRealNotification(member: any, missedMed: MissedMedication, escalationLevel: EscalationLevel) {
+  private async sendRealNotification(
+    member: any,
+    missedMed: MissedMedication,
+    escalationLevel: EscalationLevel
+  ) {
     try {
-      const message = this.createFamilyMessage(member, missedMed, escalationLevel);
-      
+      const message = this.createFamilyMessage(
+        member,
+        missedMed,
+        escalationLevel
+      );
+
       console.log(`Sending notification to ${member.name} at ${member.email}`);
-      
-      const response = await fetch('/api/send-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+
+      const response = await fetch("/api/send-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           familyMember: member,
           message,
-          urgency: escalationLevel.level >= 3 ? 'high' : 'medium',
+          urgency: escalationLevel.level >= 3 ? "high" : "medium",
           medicationDetails: {
             name: missedMed.medicationName,
             dosage: missedMed.dosage,
             scheduledTime: missedMed.scheduledTime,
-            status: 'missed'
-          }
-        })
+            status: "missed",
+          },
+        }),
       });
 
       if (response.ok) {
@@ -321,40 +366,43 @@ public async testEscalation() {
     }
   }
 
-  private getFamilyRecipients(recipientTypes: ('primary' | 'emergency' | 'all')[], familyMembers: any[]): any[] {
+  private getFamilyRecipients(
+    recipientTypes: ("primary" | "emergency" | "all")[],
+    familyMembers: any[]
+  ): any[] {
     let recipients: any[] = [];
 
     for (const type of recipientTypes) {
       switch (type) {
-        case 'primary':
-          const primary = familyMembers.find(m => m.isEmergencyContact);
+        case "primary":
+          const primary = familyMembers.find((m) => m.isEmergencyContact);
           if (primary) recipients.push(primary);
           break;
-        case 'emergency':
-          recipients.push(...familyMembers.filter(m => m.isEmergencyContact));
+        case "emergency":
+          recipients.push(...familyMembers.filter((m) => m.isEmergencyContact));
           break;
-        case 'all':
+        case "all":
           recipients.push(...familyMembers);
           break;
       }
     }
 
-    return recipients.filter((member, index, arr) => 
-      arr.findIndex(m => m.id === member.id) === index
+    return recipients.filter(
+      (member, index, arr) => arr.findIndex((m) => m.id === member.id) === index
     );
   }
 
   private isInQuietHours(member: FamilyMember): boolean {
     if (!member || !member.notificationPreferences) {
-    return false; 
-  }
+      return false;
+    }
     const quietHours = member.notificationPreferences?.quietHours || {
-    start: "22:00",
-    end: "07:00"
-  }
+      start: "22:00",
+      end: "07:00",
+    };
     const now = new Date();
-    const currentTime = now.getHours() * 100 + now.getMinutes();  
-    
+    const currentTime = now.getHours() * 100 + now.getMinutes();
+
     const quietStart = this.timeStringToNumber(quietHours.start);
     const quietEnd = this.timeStringToNumber(quietHours.end);
 
@@ -366,84 +414,87 @@ public async testEscalation() {
   }
 
   private timeStringToNumber(timeString: string): number {
-    const [hours, minutes] = timeString.split(':').map(Number);
+    const [hours, minutes] = timeString.split(":").map(Number);
     return hours * 100 + minutes;
   }
 
-  private createFamilyMessage(member: FamilyMember, missedMed: MissedMedication, escalationLevel: EscalationLevel): string {
-    const relationship = member.relationship === 'daughter' ? 'Papa' : 'Dad';
-    const urgency = escalationLevel.level >= 3 ? '🚨 URGENT: ' : '💊 ';
-    
+  private createFamilyMessage(
+    member: FamilyMember,
+    missedMed: MissedMedication,
+    escalationLevel: EscalationLevel
+  ): string {
+    const relationship = member.relationship === "daughter" ? "Papa" : "Dad";
+    const urgency = escalationLevel.level >= 3 ? "🚨 URGENT: " : "💊 ";
+
     return `${urgency}${relationship} missed his ${missedMed.medicationName} (${missedMed.dosage}) at ${missedMed.scheduledTime}. This is attempt #${missedMed.attemptCount}. Please check on him.`;
   }
 
- 
   private async showGentleReminder(missedMed: MissedMedication) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const message = `Gentle reminder: Please take your ${missedMed.medicationName} (${missedMed.dosage})`;
     try {
-      if (Notification.permission === 'granted') {
-        new Notification('Medication Reminder', {
+      if (Notification.permission === "granted") {
+        new Notification("Medication Reminder", {
           body: message,
-          icon: '/icon-192.png',
+          icon: "/icon-192.png",
           tag: `gentle-${missedMed.medicationId}`,
-          requireInteraction: false
+          requireInteraction: false,
         });
       } else {
         alert(message);
       }
     } catch (error) {
-      console.warn('Gentle reminder notification failed:', error);
+      console.warn("Gentle reminder notification failed:", error);
       alert(message);
     }
   }
 
   private async showFirmReminder(missedMed: MissedMedication) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const message = ` IMPORTANT: You missed your ${missedMed.medicationName}. Please take it now!`;
     try {
-      if (Notification.permission === 'granted') {
-        new Notification('MISSED MEDICATION', {
+      if (Notification.permission === "granted") {
+        new Notification("MISSED MEDICATION", {
           body: message,
-          icon: '/icon-192.png',
+          icon: "/icon-192.png",
           tag: `firm-${missedMed.medicationId}`,
-          requireInteraction: true
+          requireInteraction: true,
         });
       } else {
         alert(message);
       }
     } catch (error) {
-      console.warn('Firm reminder notification failed:', error);
+      console.warn("Firm reminder notification failed:", error);
       alert(message);
     }
   }
 
   private async showEmergencyNotification(missedMed: MissedMedication) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const message = ` URGENT: Multiple missed medications detected. Family has been notified. Please take ${missedMed.medicationName} immediately!`;
     alert(message);
   }
 
   private async playGentleAudio() {
-    console.log(' Playing gentle audio reminder');
+    console.log(" Playing gentle audio reminder");
   }
 
   private async playLouderAudio() {
-    console.log(' Playing louder audio reminder');
+    console.log(" Playing louder audio reminder");
   }
 
   private async flashScreen() {
-    if (typeof window === 'undefined') return;
-    console.log(' Flashing screen for attention');
-    
-    const flashDiv = document.createElement('div');
+    if (typeof window === "undefined") return;
+    console.log(" Flashing screen for attention");
+
+    const flashDiv = document.createElement("div");
     flashDiv.style.cssText = `
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(255, 0, 0, 0.3); z-index: 9999; pointer-events: none;
       animation: flash 0.5s ease-in-out 3;
     `;
 
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `@keyframes flash { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }`;
     document.head.appendChild(style);
     document.body.appendChild(flashDiv);
@@ -455,7 +506,9 @@ public async testEscalation() {
   }
 
   private async initiatePhoneCall(missedMed: MissedMedication) {
-    console.log(` Initiating emergency phone call for ${missedMed.medicationName}`);
+    console.log(
+      ` Initiating emergency phone call for ${missedMed.medicationName}`
+    );
   }
 
   private async sendSMSAlert(missedMed: MissedMedication) {
@@ -469,7 +522,7 @@ public async testEscalation() {
   medicationTaken(medicationId: string) {
     console.log(` Medication taken: ${medicationId}`);
     this.missedMedications.delete(medicationId);
-    
+
     const timerId = this.escalationTimers.get(medicationId);
     if (timerId) {
       clearTimeout(timerId);
@@ -495,5 +548,5 @@ public async testEscalation() {
 export const emergencyEscalationService = new EmergencyEscalationService();
 
 export function integrateMedicationTracking() {
-  console.log(' Emergency escalation system ready for integration');
+  console.log(" Emergency escalation system ready for integration");
 }

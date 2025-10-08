@@ -116,21 +116,19 @@ export function canAccessRoute(userRole: string, route: string): boolean {
 // Get user profile with extended information
 export async function getUserProfile(userId: string) {
   try {
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            createdAt: true,
-          },
-        },
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
       },
     });
-    return profile;
+    return user;
   } catch (error) {
     console.error("Error fetching user profile:", error);
     return null;
@@ -144,21 +142,21 @@ export async function updateUserRole(
   adminUserId: string
 ) {
   try {
-    const adminProfile = await prisma.userProfile.findUnique({
-      where: { userId: adminUserId },
+    const adminUser = await prisma.user.findUnique({
+      where: { id: adminUserId },
     });
 
-    if (adminProfile?.role !== "ADMIN") {
+    if (adminUser?.role !== "ADMIN") {
       throw new Error("Insufficient permissions to update user role");
     }
 
     // Update user role
-    const updatedProfile = await prisma.userProfile.update({
-      where: { userId },
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
       data: { role: newRole },
     });
 
-    return updatedProfile;
+    return updatedUser;
   } catch (error) {
     console.error("Error updating user role:", error);
     throw error;
@@ -167,20 +165,20 @@ export async function updateUserRole(
 
 export async function deactivateUser(userId: string, adminUserId: string) {
   try {
-    const adminProfile = await prisma.userProfile.findUnique({
-      where: { userId: adminUserId },
+    const adminUser = await prisma.user.findUnique({
+      where: { id: adminUserId },
     });
 
-    if (adminProfile?.role !== "ADMIN") {
+    if (adminUser?.role !== "ADMIN") {
       throw new Error("Insufficient permissions to deactivate user");
     }
 
-    const updatedProfile = await prisma.userProfile.update({
-      where: { userId },
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
       data: { isActive: false },
     });
 
-    return updatedProfile;
+    return updatedUser;
   } catch (error) {
     console.error("Error deactivating user:", error);
     throw error;

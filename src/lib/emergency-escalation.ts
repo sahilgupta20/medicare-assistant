@@ -123,7 +123,7 @@ class EmergencyEscalationService {
 
           console.log(
             "Successfully loaded family members:",
-            mappedMembers.map((m) => m.name)
+            mappedMembers.map((m: any) => m.name)
           );
           return mappedMembers;
         }

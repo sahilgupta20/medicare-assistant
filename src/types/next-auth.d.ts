@@ -25,7 +25,11 @@ declare global {
   interface Window {
     voiceInterfaceSetup?: boolean;
     webkitAudioContext?: typeof AudioContext;
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
   }
+  var SpeechRecognition: any;
+  var webkitSpeechRecognition: any;
 }
 
 export {};

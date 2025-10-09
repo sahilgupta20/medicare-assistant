@@ -20,8 +20,8 @@ interface MedicationData {
 
 class VoiceInterfaceService {
   private onMedicationTaken?: (medicationId: string) => void;
-  private recognition: SpeechRecognition | null = null;
-  private synthesis: SpeechSynthesis | null = null;
+  private recognition: any | null = null;
+  private synthesis: any | null = null;
   private state: VoiceState = {
     isListening: false,
     isSupported: false,

@@ -7,16 +7,12 @@ export async function sendDailyFamilyUpdates() {
     const seniors = await prisma.user.findMany({
       where: {
         role: "SENIOR",
-        caregivers: {
+        familyMembersAsSenior: {
           some: {},
         },
       },
       include: {
-        caregivers: {
-          include: {
-            caregiver: true,
-          },
-        },
+        familyMembersAsSenior: true,
       },
     });
 

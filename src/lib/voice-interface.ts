@@ -314,10 +314,10 @@ class VoiceInterfaceService {
     const voices = this.synthesis.getVoices();
     const preferredVoice =
       voices.find(
-        (voice) =>
+        (voice: any) =>
           voice.lang.startsWith("en") &&
           voice.name.toLowerCase().includes("female")
-      ) || voices.find((voice) => voice.lang.startsWith("en"));
+      ) || voices.find((voice: any) => voice.lang.startsWith("en"));
 
     if (preferredVoice) {
       utterance.voice = preferredVoice;

@@ -63,7 +63,7 @@ class VoiceInterfaceService {
         this.notifyStateChange();
       };
 
-      this.recognition.onresult = (event) => {
+      this.recognition.onresult = (event: any) => {
         const result = event.results[0];
         const transcript = result[0].transcript;
         const confidence = result[0].confidence;
@@ -77,7 +77,7 @@ class VoiceInterfaceService {
         this.processCommand(transcript);
       };
 
-      this.recognition.onerror = (event) => {
+      this.recognition.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
         this.speak("Sorry, I didn't catch that. Please try again.");
       };

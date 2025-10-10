@@ -6,6 +6,17 @@ const urlsToCache = [
   '/manifest.json'
 ]
 
+// Paths that should NEVER be cached
+const EXCLUDE_FROM_CACHE = [
+  '/api/auth',           // All auth routes
+  '/api/auth/session',   // Session checks
+  '/api/auth/signin',    // Sign in
+  '/api/auth/signout',   // Sign out
+  '/api/auth/callback',  // OAuth callbacks
+  '/api/auth/csrf',      // CSRF tokens
+  '/api/auth/providers', // Auth providers
+]
+
 // Install Service Worker
 self.addEventListener('install', (event) => {
   console.log('🔧 Service Worker: Installing...')
@@ -50,7 +61,7 @@ function shouldCacheRequest(request) {
   // Only cache GET requests
   if (request.method !== 'GET') return false
   
-  // Don't cache chrome-extension, moz-extension, or other browser extension requests
+  // Don't cache browser extension requests
   if (request.url.startsWith('chrome-extension://') || 
       request.url.startsWith('moz-extension://') ||
       request.url.startsWith('safari-extension://') ||
@@ -58,13 +69,20 @@ function shouldCacheRequest(request) {
     return false
   }
   
-  // Don't cache data: URLs
-  if (request.url.startsWith('data:')) return false
+  // Don't cache data: or blob: URLs
+  if (request.url.startsWith('data:') || request.url.startsWith('blob:')) {
+    return false
+  }
   
-  // Don't cache blob: URLs
-  if (request.url.startsWith('blob:')) return false
+  // CRITICAL: Don't cache auth routes
+  const url = request.url
+  const shouldExclude = EXCLUDE_FROM_CACHE.some(path => url.includes(path))
+  if (shouldExclude) {
+    console.log('🚫 Skipping cache for auth route:', url)
+    return false
+  }
   
-  // Only cache same-origin requests (your website)
+  // Only cache same-origin requests
   try {
     const requestUrl = new URL(request.url)
     const currentUrl = new URL(self.location)
@@ -78,7 +96,7 @@ function shouldCacheRequest(request) {
 self.addEventListener('fetch', (event) => {
   // Skip requests we shouldn't cache
   if (!shouldCacheRequest(event.request)) {
-    return
+    return // Let browser handle it normally
   }
   
   event.respondWith(
@@ -98,20 +116,17 @@ self.addEventListener('fetch', (event) => {
       })
       .catch((error) => {
         console.log('🌐 Network failed, trying cache for:', event.request.url)
-        // Network failed, try cache
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) {
             console.log('✅ Served from cache:', event.request.url)
             return cachedResponse
           }
           
-          // If it's a navigation request and we don't have it cached, return the main page
           if (event.request.destination === 'document') {
             return caches.match('/').then((homeResponse) => {
               if (homeResponse) {
                 return homeResponse
               }
-              // Fallback offline page
               return new Response(`
                 <!DOCTYPE html>
                 <html>
@@ -135,7 +150,6 @@ self.addEventListener('fetch', (event) => {
             })
           }
           
-          // For other resources, return a simple offline message
           return new Response('Content not available offline', {
             status: 503,
             statusText: 'Service Unavailable',
@@ -153,12 +167,10 @@ self.addEventListener('notificationclick', (event) => {
   console.log('🔔 Notification clicked:', event.notification.tag)
   event.notification.close()
 
-  // Handle different notification actions
   if (event.action === 'taken') {
     console.log('✅ User marked medication as taken')
   } else if (event.action === 'snooze') {
     console.log('😴 User snoozed medication reminder')
-    // Schedule another notification in 10 minutes
     setTimeout(() => {
       self.registration.showNotification('Medication Reminder (Snoozed)', {
         body: event.notification.body,
@@ -169,16 +181,13 @@ self.addEventListener('notificationclick', (event) => {
     }, 10 * 60 * 1000)
   }
 
-  // Focus or open the app window
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then((clientList) => {
-      // If app is already open, focus it
       for (const client of clientList) {
         if (client.url.includes('/medications') && 'focus' in client) {
           return client.focus()
         }
       }
-      // If app is not open, open it
       if (clients.openWindow) {
         return clients.openWindow('/medications')
       }

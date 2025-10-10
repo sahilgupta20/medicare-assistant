@@ -126,27 +126,24 @@ export const middleware = withAuth(
     return NextResponse.next();
   },
   {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl;
-
-        if (pathname.startsWith("/api/")) {
-          return true;
-        }
-
-        if (
-          pathname.startsWith("/auth/") ||
-          pathname === "/" ||
-          pathname.startsWith("/_next") ||
-          pathname.includes(".") ||
-          pathname.startsWith("/icon-")
-        ) {
-          return true;
-        }
-
-        return !!token;
-      },
-    },
+    // callbacks: {
+    //   authorized: ({ token, req }) => {
+    //     const { pathname } = req.nextUrl;
+    //     if (pathname.startsWith("/api/")) {
+    //       return true;
+    //     }
+    //     if (
+    //       pathname.startsWith("/auth/") ||
+    //       pathname === "/" ||
+    //       pathname.startsWith("/_next") ||
+    //       pathname.includes(".") ||
+    //       pathname.startsWith("/icon-")
+    //     ) {
+    //       return true;
+    //     }
+    //     return !!token;
+    //   },
+    // },
   }
 );
 

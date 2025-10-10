@@ -66,13 +66,13 @@ export default function SignInPage() {
 
           if (session?.user?.role) {
             const targetUrl = getDefaultRouteForRole(session.user.role);
-            router.push(targetUrl);
+            window.location.href = targetUrl; // Changed from router.push
           } else {
-            router.push("/family");
+            window.location.href = "/family"; // Changed from router.push
           }
         } catch (sessionError) {
           console.error("Session fetch error:", sessionError);
-          router.push("/family");
+          window.location.href = "/family"; // Changed from router.push
         }
       }
     } catch (error) {

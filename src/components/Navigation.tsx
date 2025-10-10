@@ -42,7 +42,7 @@ export function Navigation() {
         return [
           { name: "My Medications", href: "/medications", icon: Pill },
           { name: "Family Circle", href: "/family", icon: Users },
-          { name: "Family Setup", href: "/family-setup", icon: Settings },
+          // { name: "Family Setup", href: "/family-setup", icon: Settings },
         ];
 
       case "CAREGIVER":

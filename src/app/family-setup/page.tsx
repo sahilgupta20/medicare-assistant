@@ -354,7 +354,7 @@ export default function FamilySetupPage() {
           </div>
         </header>
 
-        {familySetupPermissions.isViewOnly && (
+        {/* {familySetupPermissions.isViewOnly && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
             <div className="flex">
               <div className="ml-3">
@@ -366,7 +366,7 @@ export default function FamilySetupPage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Existing Family Members */}
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -673,7 +673,7 @@ export default function FamilySetupPage() {
                             }))
                           }
                           className="w-full p-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
-                          disabled={!canAddMembers}
+                          // disabled={!canAddMembers}
                         >
                           <option value="primary">Primary Caregiver</option>
                           <option value="secondary">Secondary Contact</option>
@@ -726,7 +726,12 @@ export default function FamilySetupPage() {
                             }
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                          <span>Daily medication summary</span>
+                          <span
+                            className="text-gray-700 font-medium"
+                            style={{ color: "#374151" }}
+                          >
+                            Daily medication summary
+                          </span>
                         </label>
                         <label className="flex items-center space-x-3">
                           <input
@@ -746,7 +751,12 @@ export default function FamilySetupPage() {
                             }
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                          <span>Missed medication alerts</span>
+                          <span
+                            className="text-gray-700 font-medium"
+                            style={{ color: "#374151" }}
+                          >
+                            Missed medication alerts
+                          </span>
                         </label>
                       </div>
                     </div>

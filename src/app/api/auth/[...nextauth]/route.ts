@@ -127,37 +127,34 @@ const handler = NextAuth({
     async redirect({ url, baseUrl }) {
       console.log("🔄 Redirect callback - URL:", url, "BaseURL:", baseUrl);
 
+      // Handle signout
       if (url.includes("/api/auth/signout") || url.includes("signout")) {
         console.log("🔄 Signout detected, redirecting to signin");
         return `${baseUrl}/auth/signin`;
       }
 
-      if (url.includes("/auth/signin")) {
-        console.log("🔄 Already on signin page, staying there");
-        return url;
-      }
-
+      // After successful signin, redirect to medications (default)
       if (url.includes("/api/auth/callback/credentials")) {
-        console.log(
-          "🔄 Successful signin callback - letting client handle redirect"
-        );
+        console.log("🔄 Successful signin callback");
         return `${baseUrl}/medications`;
       }
 
+      // Allow relative URLs
       if (url.startsWith("/")) {
         const fullUrl = `${baseUrl}${url}`;
         console.log("🔄 Relative URL converted to:", fullUrl);
         return fullUrl;
       }
 
-      // Same domain
+      // Allow same domain redirects
       if (url.startsWith(baseUrl)) {
         console.log("🔄 Same domain redirect:", url);
         return url;
       }
 
-      console.log("🔄 Default redirect to base URL");
-      return baseUrl;
+      // Default fallback
+      console.log("🔄 Default redirect to medications");
+      return `${baseUrl}/medications`;
     },
   },
 

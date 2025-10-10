@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn, getSession, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Pill, Loader2 } from "lucide-react";
@@ -24,6 +24,7 @@ const getDefaultRouteForRole = (role: string): string => {
 };
 
 export default function SignInPage() {
+  const { data: session, status } = useSession();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -35,6 +36,14 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
 
   const callbackUrl = searchParams.get("callbackUrl") || "/medications";
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role) {
+      const targetUrl = getDefaultRouteForRole(session.user.role);
+      console.log("Already logged in, redirecting to:", targetUrl);
+      window.location.href = targetUrl;
+    }
+  }, [status, session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,105 +2,120 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
-export const middleware = withAuth(function middleware(req) {
-  const token = req.nextauth.token;
-  const { pathname } = req.nextUrl;
+export const middleware = withAuth(
+  function middleware(req) {
+    const token = req.nextauth.token;
+    const { pathname } = req.nextUrl;
 
-  console.log(
-    `🔒 Middleware: ${pathname} | Token: ${!!token} | Role: ${token?.role}`
-  );
+    console.log(
+      `🔒 Middleware: ${pathname} | Token: ${!!token} | Role: ${token?.role}`
+    );
 
-  // Allow API routes
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.next();
-  }
+    // Allow API routes
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.next();
+    }
 
-  // Allow public/static routes
-  if (
-    pathname === "/" ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.includes(".") ||
-    pathname.startsWith("/icon-")
-  ) {
-    return NextResponse.next();
-  }
+    // Allow public/static routes
+    if (
+      pathname === "/" ||
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/favicon") ||
+      pathname.includes(".") ||
+      pathname.startsWith("/icon-")
+    ) {
+      return NextResponse.next();
+    }
 
-  // Allow auth routes
-  if (pathname.startsWith("/auth/")) {
-    return NextResponse.next();
-  }
+    // Allow auth routes WITHOUT token check
+    if (pathname.startsWith("/auth/")) {
+      return NextResponse.next();
+    }
 
-  if (!token) {
-    console.log(` No token, redirecting to signin from ${pathname}`);
-
-    if (pathname !== "/auth/signin") {
+    // If no token and not on auth page, redirect to signin
+    if (!token) {
+      console.log(`⛔ No token, redirecting to signin from ${pathname}`);
       const signInUrl = new URL("/auth/signin", req.url);
       signInUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(signInUrl);
     }
-    return NextResponse.next();
-  }
 
-  const userRole = token.role as string;
+    const userRole = token.role as string;
 
-  // Define role permissions
-  const rolePermissions = {
-    ADMIN: {
-      allowed: [
-        "/admin",
-        "/medications",
-        "/family",
-        "/analytics",
-        "/family-setup",
-      ],
-      defaultRedirect: "/admin",
-    },
-    SENIOR: {
-      allowed: ["/medications", "/family"],
-      defaultRedirect: "/medications",
-    },
-    FAMILY: {
-      allowed: ["/family"],
-      defaultRedirect: "/family",
-    },
-    CAREGIVER: {
-      allowed: ["/medications", "/family", "/analytics", "/family-setup"],
-      defaultRedirect: "/medications",
-    },
-    DOCTOR: {
-      allowed: ["/analytics", "/family"],
-      defaultRedirect: "/analytics",
-    },
-  };
+    // Define role permissions
+    const rolePermissions = {
+      ADMIN: {
+        allowed: [
+          "/admin",
+          "/medications",
+          "/family",
+          "/analytics",
+          "/family-setup",
+        ],
+        defaultRedirect: "/admin",
+      },
+      SENIOR: {
+        allowed: ["/medications", "/family"],
+        defaultRedirect: "/medications",
+      },
+      FAMILY: {
+        allowed: ["/family"],
+        defaultRedirect: "/family",
+      },
+      CAREGIVER: {
+        allowed: ["/medications", "/family", "/analytics", "/family-setup"],
+        defaultRedirect: "/medications",
+      },
+      DOCTOR: {
+        allowed: ["/analytics", "/family"],
+        defaultRedirect: "/analytics",
+      },
+    };
 
-  const userPermissions =
-    rolePermissions[userRole as keyof typeof rolePermissions];
+    const userPermissions =
+      rolePermissions[userRole as keyof typeof rolePermissions];
 
-  // Unknown role - redirect to signin
-  if (!userPermissions) {
-    console.log(` Unknown role: ${userRole}, redirecting to signin`);
-    return NextResponse.redirect(new URL("/auth/signin", req.url));
-  }
+    // Unknown role - redirect to signin
+    if (!userPermissions) {
+      console.log(`⚠️ Unknown role: ${userRole}, redirecting to signin`);
+      return NextResponse.redirect(new URL("/auth/signin", req.url));
+    }
 
-  // Check if user has access to this path
-  const isAllowed = userPermissions.allowed.some(
-    (allowedPath) =>
-      pathname === allowedPath || pathname.startsWith(allowedPath + "/")
-  );
-
-  if (!isAllowed) {
-    console.log(` ACCESS DENIED: ${userRole} cannot access ${pathname}`);
-    console.log(` Redirecting to: ${userPermissions.defaultRedirect}`);
-    return NextResponse.redirect(
-      new URL(userPermissions.defaultRedirect, req.url)
+    // Check if user has access to this path
+    const isAllowed = userPermissions.allowed.some(
+      (allowedPath) =>
+        pathname === allowedPath || pathname.startsWith(allowedPath + "/")
     );
-  }
 
-  // ✅ Access granted - let them through
-  console.log(`✅ Access granted: ${userRole} can access ${pathname}`);
-  return NextResponse.next();
-});
+    if (!isAllowed) {
+      console.log(`🚫 ACCESS DENIED: ${userRole} cannot access ${pathname}`);
+      console.log(`↪️ Redirecting to: ${userPermissions.defaultRedirect}`);
+      return NextResponse.redirect(
+        new URL(userPermissions.defaultRedirect, req.url)
+      );
+    }
+
+    // ✅ Access granted - let them through
+    console.log(`✅ Access granted: ${userRole} can access ${pathname}`);
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      // This prevents the middleware from running for unauthenticated users on auth pages
+      authorized: ({ token, req }) => {
+        const { pathname } = req.nextUrl;
+
+        // Allow access to auth pages without token
+        if (pathname.startsWith("/auth/")) {
+          return true;
+        }
+
+        // Require token for all other pages
+        return !!token;
+      },
+    },
+  }
+);
 
 export const config = {
   matcher: [

@@ -31,12 +31,15 @@ export const middleware = withAuth(function middleware(req) {
     return NextResponse.next();
   }
 
-  // Check if user is authenticated
   if (!token) {
     console.log(` No token, redirecting to signin from ${pathname}`);
-    const signInUrl = new URL("/auth/signin", req.url);
-    signInUrl.searchParams.set("callbackUrl", req.url);
-    return NextResponse.redirect(signInUrl);
+
+    if (pathname !== "/auth/signin") {
+      const signInUrl = new URL("/auth/signin", req.url);
+      signInUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(signInUrl);
+    }
+    return NextResponse.next();
   }
 
   const userRole = token.role as string;

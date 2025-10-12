@@ -72,6 +72,7 @@ export default function RootLayout({
             `,
           }}
         />
+        {children}
         <Toaster position="top-right" richColors expand={true} />
       </body>
     </html>

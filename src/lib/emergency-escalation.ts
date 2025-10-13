@@ -1,8 +1,6 @@
 // lib/emergency-escalation.ts
 "use client";
 
-import { toast } from "sonner";
-
 interface FamilyMember {
   id: string;
   name: string;
@@ -461,10 +459,6 @@ class EmergencyEscalationService {
     } catch (error) {
       console.warn("Gentle reminder notification failed:", error);
     }
-    toast.info(`💊 ${missedMed.medicationName}`, {
-      description: `Time to take your ${missedMed.dosage}`,
-      duration: 30000,
-    });
   }
 
   private async showFirmReminder(missedMed: MissedMedication) {
@@ -490,10 +484,6 @@ class EmergencyEscalationService {
     } catch (error) {
       console.warn("Firm reminder notification failed:", error);
     }
-    toast.warning(`⚠️ MISSED: ${missedMed.medicationName}`, {
-      description: `Please take your ${missedMed.dosage} now!`,
-      duration: 30000,
-    });
   }
 
   private async showEmergencyNotification(missedMed: MissedMedication) {
@@ -519,10 +509,6 @@ class EmergencyEscalationService {
     } catch (error) {
       console.warn("Emergency notification failed:", error);
     }
-    toast.error(`🚨 URGENT: ${missedMed.medicationName}`, {
-      description: `Family notified. Please take ${missedMed.dosage} immediately!`,
-      duration: 45000,
-    });
   }
 
   private async playGentleAudio() {

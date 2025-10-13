@@ -435,12 +435,12 @@ class EmergencyEscalationService {
     return `${urgency}${relationship} missed his ${missedMed.medicationName} (${missedMed.dosage}) at ${missedMed.scheduledTime}. This is attempt #${missedMed.attemptCount}. Please check on him.`;
   }
 
-  // 🔧 FIX: Use NON-BLOCKING notifications with AUTO-CLOSE
   private async showGentleReminder(missedMed: MissedMedication) {
     if (typeof window === "undefined") return;
 
     const message = `💊 Gentle reminder: Please take your ${missedMed.medicationName} (${missedMed.dosage})`;
     console.log("🔔", message);
+    this.showVisualAlert(message, "info");
 
     try {
       if (Notification.permission === "granted") {
@@ -466,6 +466,7 @@ class EmergencyEscalationService {
 
     const message = `⚠️ IMPORTANT: You missed your ${missedMed.medicationName}. Please take it now!`;
     console.log("🔔", message);
+    this.showVisualAlert(message, "warning");
 
     try {
       if (Notification.permission === "granted") {
@@ -491,6 +492,7 @@ class EmergencyEscalationService {
 
     const message = `🚨 URGENT: Multiple missed medications detected. Family has been notified. Please take ${missedMed.medicationName} immediately!`;
     console.log("🚨", message);
+    this.showVisualAlert(message, "error");
 
     try {
       if (Notification.permission === "granted") {
@@ -563,7 +565,7 @@ class EmergencyEscalationService {
     if (timerId) {
       clearTimeout(timerId);
       this.escalationTimers.delete(medicationId);
-      console.log(`🚫 Cancelled escalation timer for ${medicationId}`);
+      console.log(` Cancelled escalation timer for ${medicationId}`);
     }
   }
 
@@ -578,6 +580,94 @@ class EmergencyEscalationService {
 
   getFamilyMembers(): FamilyMember[] {
     return this.familyMembers;
+  }
+  private showVisualAlert(message: string, type: "info" | "warning" | "error") {
+    if (typeof window === "undefined") return;
+
+    const colors = {
+      info: {
+        bg: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        border: "#667eea",
+      },
+      warning: {
+        bg: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        border: "#f59e0b",
+      },
+      error: {
+        bg: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+        border: "#ef4444",
+      },
+    };
+
+    const { bg, border } = colors[type];
+
+    const alert = document.createElement("div");
+    alert.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${bg};
+      color: white;
+      padding: 20px 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      z-index: 999999;
+      font-size: 16px;
+      font-weight: 600;
+      max-width: 400px;
+      animation: slideIn 0.3s ease-out;
+      border-left: 4px solid ${border};
+    `;
+
+    const icon = type === "info" ? "💊" : type === "warning" ? "⚠️" : "🚨";
+    alert.innerHTML = `
+      <div style="display: flex; align-items: start; gap: 12px;">
+        <div style="font-size: 28px;">${icon}</div>
+        <div style="flex: 1;">
+          <div style="margin-bottom: 12px;">${message}</div>
+          <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+            style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); 
+                   color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; 
+                   font-size: 14px; font-weight: bold;">
+            ✓ Dismiss
+          </button>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" 
+          style="background: none; border: none; color: white; cursor: pointer; 
+                 font-size: 24px; padding: 0; width: 30px; height: 30px; line-height: 1;">
+          ×
+        </button>
+      </div>
+    `;
+
+    // Add animation
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    `;
+    if (!document.querySelector("#visual-alert-styles")) {
+      style.id = "visual-alert-styles";
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(alert);
+
+    // Auto-remove after 30 seconds
+    setTimeout(() => {
+      if (alert.parentElement) {
+        alert.style.animation = "slideIn 0.3s ease-out reverse";
+        setTimeout(() => alert.remove(), 300);
+      }
+    }, 30000);
   }
 }
 

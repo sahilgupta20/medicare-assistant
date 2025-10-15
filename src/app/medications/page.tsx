@@ -412,13 +412,26 @@ export default function MedicationsPage() {
     if (!confirm("Are you sure you want to remove this medication?")) return;
 
     try {
+      console.log(` Cancelling all reminders for medication: ${id}`);
+      const notificationService = NotificationService.getInstance();
+      if (notificationService) {
+        notificationService.clearRemindersForMedication(id);
+      }
+      if (emergencyEscalationService) {
+        emergencyEscalationService.medicationTaken(id);
+      }
+
       const response = await fetch(`/api/medications?id=${id}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
         await fetchMedications();
+        console.log(` Medication ${id} deleted successfully`);
         alert("Medication deleted successfully!");
+      } else {
+        console.error("Failed to delete medication");
+        alert("Failed to delete medication");
       }
     } catch (error) {
       console.error("Error deleting medication:", error);

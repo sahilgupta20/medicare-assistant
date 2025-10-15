@@ -167,11 +167,11 @@ class EmergencyEscalationService {
 
       if (response.ok) {
         const alert = await response.json();
-        console.log("✅ Emergency alert created in database:", alert.id);
+        console.log(" Emergency alert created in database:", alert.id);
         return alert;
       }
     } catch (error) {
-      console.error("❌ Failed to create emergency alert:", error);
+      console.error(" Failed to create emergency alert:", error);
     }
   }
 
@@ -181,7 +181,7 @@ class EmergencyEscalationService {
     dosage: string,
     scheduledTime: string
   ) {
-    console.log(`⚠️ Medication missed: ${medicationName} at ${scheduledTime}`);
+    console.log(` Medication missed: ${medicationName} at ${scheduledTime}`);
 
     const missedMed: MissedMedication = {
       medicationId,
@@ -200,7 +200,7 @@ class EmergencyEscalationService {
     const missedMed = this.missedMedications.get(medicationId);
     if (!missedMed) return;
 
-    console.log(`🚀 Starting escalation for ${missedMed.medicationName}`);
+    console.log(` Starting escalation for ${missedMed.medicationName}`);
     await this.executeEscalationLevel(medicationId, 1);
   }
 
@@ -211,7 +211,7 @@ class EmergencyEscalationService {
     if (!missedMed || !escalationLevel) return;
 
     console.log(
-      `📢 Executing escalation level ${level}: ${escalationLevel.name} for ${missedMed.medicationName}`
+      ` Executing escalation level ${level}: ${escalationLevel.name} for ${missedMed.medicationName}`
     );
 
     missedMed.attemptCount = level;
@@ -242,14 +242,14 @@ class EmergencyEscalationService {
       const delayMs = nextLevel.delayMinutes * 60 * 1000;
 
       console.log(
-        `⏰ Next escalation level ${level + 1} scheduled in ${
+        ` Next escalation level ${level + 1} scheduled in ${
           nextLevel.delayMinutes
         } minutes`
       );
 
       const timerId = window.setTimeout(() => {
         if (this.missedMedications.has(medicationId)) {
-          console.log(`⏰ Timer fired: Moving to level ${level + 1}`);
+          console.log(` Timer fired: Moving to level ${level + 1}`);
           this.executeEscalationLevel(medicationId, level + 1);
         }
       }, delayMs);
@@ -259,9 +259,7 @@ class EmergencyEscalationService {
   }
 
   private async executeAction(action: string, missedMed: MissedMedication) {
-    console.log(
-      `🎯 Executing action: ${action} for ${missedMed.medicationName}`
-    );
+    console.log(` Executing action: ${action} for ${missedMed.medicationName}`);
 
     switch (action) {
       case "gentle_notification":
@@ -301,7 +299,7 @@ class EmergencyEscalationService {
     escalationLevel: EscalationLevel
   ) {
     console.log(
-      `👨‍👩‍👧‍👦 Notifying family members for escalation level ${escalationLevel.level}`
+      ` Notifying family members for escalation level ${escalationLevel.level}`
     );
 
     const familyMembers = await this.loadFamilyMembersFromDatabase();
@@ -322,7 +320,7 @@ class EmergencyEscalationService {
     for (const member of recipients) {
       if (this.isInQuietHours(member)) {
         console.log(
-          `🔇 Skipping notification to ${member.name} due to quiet hours`
+          ` Skipping notification to ${member.name} due to quiet hours`
         );
         continue;
       }
@@ -343,9 +341,7 @@ class EmergencyEscalationService {
         escalationLevel
       );
 
-      console.log(
-        `📧 Sending notification to ${member.name} at ${member.email}`
-      );
+      console.log(` Sending notification to ${member.name} at ${member.email}`);
 
       const response = await fetch("/api/send-notification", {
         method: "POST",
@@ -365,10 +361,10 @@ class EmergencyEscalationService {
 
       if (response.ok) {
         const result = await response.json();
-        console.log(`✅ Notification sent to ${member.name}:`, result);
+        console.log(` Notification sent to ${member.name}:`, result);
       }
     } catch (error) {
-      console.error(`❌ Failed to send notification to ${member.name}:`, error);
+      console.error(` Failed to send notification to ${member.name}:`, error);
     }
   }
 
@@ -568,16 +564,16 @@ class EmergencyEscalationService {
   }
 
   private async playGentleAudio() {
-    console.log("🔊 Playing gentle audio reminder");
+    console.log(" Playing gentle audio reminder");
   }
 
   private async playLouderAudio() {
-    console.log("🔊 Playing louder audio reminder");
+    console.log(" Playing louder audio reminder");
   }
 
   private async flashScreen() {
     if (typeof window === "undefined") return;
-    console.log("⚡ Flashing screen for attention");
+    console.log(" Flashing screen for attention");
 
     const flashDiv = document.createElement("div");
     flashDiv.style.cssText = `
@@ -599,20 +595,20 @@ class EmergencyEscalationService {
 
   private async initiatePhoneCall(missedMed: MissedMedication) {
     console.log(
-      `📞 Initiating emergency phone call for ${missedMed.medicationName}`
+      ` Initiating emergency phone call for ${missedMed.medicationName}`
     );
   }
 
   private async sendSMSAlert(missedMed: MissedMedication) {
-    console.log(`📱 Sending SMS alerts for ${missedMed.medicationName}`);
+    console.log(` Sending SMS alerts for ${missedMed.medicationName}`);
   }
 
   private async sendEmailAlert(missedMed: MissedMedication) {
-    console.log(`📧 Sending email alerts for ${missedMed.medicationName}`);
+    console.log(` Sending email alerts for ${missedMed.medicationName}`);
   }
 
   medicationTaken(medicationId: string) {
-    console.log(`✅ Medication taken: ${medicationId}`);
+    console.log(` Medication taken: ${medicationId}`);
     this.missedMedications.delete(medicationId);
 
     const timerId = this.escalationTimers.get(medicationId);
@@ -728,7 +724,7 @@ class EmergencyEscalationService {
 export const emergencyEscalationService = new EmergencyEscalationService();
 
 export function integrateMedicationTracking() {
-  console.log("✅ Emergency escalation system ready for integration");
+  console.log(" Emergency escalation system ready for integration");
 }
 
 //  Expose to window for testing in browser console

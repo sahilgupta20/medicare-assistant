@@ -33,6 +33,37 @@ class MediCareNotificationService {
     timezone: "Asia/Kolkata",
   };
 
+  public clearRemindersForMedication(medicationId: string): void {
+    if (typeof window === "undefined") return;
+
+    console.log(` Clearing all reminders for medication: ${medicationId}`);
+
+    let remindersCleared = 0;
+    let missedTimersCleared = 0;
+    this.state.scheduledReminders.forEach((timeoutId, key) => {
+      if (key.startsWith(medicationId)) {
+        clearTimeout(timeoutId);
+        this.state.scheduledReminders.delete(key);
+        remindersCleared++;
+        console.log(`  Cleared reminder: ${key}`);
+      }
+    });
+    this.state.missedMedicationTimers.forEach((timerId, key) => {
+      if (key.includes(medicationId)) {
+        clearTimeout(timerId);
+        this.state.missedMedicationTimers.delete(key);
+        missedTimersCleared++;
+        console.log(` Cleared missed timer: ${key}`);
+      }
+    });
+
+    emergencyEscalationService.medicationTaken(medicationId);
+
+    console.log(
+      ` Cleared ${remindersCleared} reminders and ${missedTimersCleared} missed timers for ${medicationId}`
+    );
+  }
+
   private createNotificationTone: (() => void) | null = null;
   private initialized: boolean = false;
 

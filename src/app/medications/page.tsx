@@ -477,6 +477,10 @@ export default function MedicationsPage() {
     }
 
     try {
+      console.log(
+        ` Marking medication ${medicationId} as taken at ${scheduledTime}`
+      );
+
       const scheduledDateTime = new Date();
       const [hours, minutes] = scheduledTime.split(":").map(Number);
       scheduledDateTime.setHours(hours, minutes, 0, 0);
@@ -496,25 +500,42 @@ export default function MedicationsPage() {
         setTakenMedications((prev) => new Set([...prev, takenKey]));
 
         const notificationService = NotificationService.getInstance();
-        await notificationService.medicationTaken(medicationId);
-        await emergencyEscalationService?.medicationTaken(medicationId);
+        if (notificationService) {
+          await notificationService.markMedicationTaken(
+            medicationId,
+            scheduledTime
+          );
+        }
 
-        voiceInterfaceService?.updateMedications(
-          medications.flatMap((med) => {
-            const timesArray = getTimesArray(med.times);
-            return timesArray.map((time) => ({
-              id: `${med.id}-${time}`,
-              name: med.name,
-              dosage: med.dosage,
-              times: [time],
-              isTaken:
-                takenMedications.has(`${med.id}-${time}`) ||
-                takenKey === `${med.id}-${time}`,
-            }));
-          })
+        if (emergencyEscalationService) {
+          emergencyEscalationService.medicationTaken(medicationId);
+        }
+
+        if (voiceInterfaceService) {
+          voiceInterfaceService.updateMedications(
+            medications.flatMap((med) => {
+              const timesArray = getTimesArray(med.times);
+              return timesArray.map((time) => ({
+                id: `${med.id}-${time}`,
+                name: med.name,
+                dosage: med.dosage,
+                times: [time],
+                isTaken:
+                  takenMedications.has(`${med.id}-${time}`) ||
+                  takenKey === `${med.id}-${time}`,
+              }));
+            })
+          );
+        }
+
+        console.log(
+          `✅ Successfully marked ${medicationId} as taken at ${scheduledTime}`
         );
-
         alert("Medication marked as taken! Great job staying healthy!");
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to save medication log:", errorData);
+        alert("Failed to save. Please try again.");
       }
     } catch (error) {
       console.error("Error logging medication:", error);

@@ -440,21 +440,36 @@ class EmergencyEscalationService {
 
     const message = `💊 Gentle reminder: Please take your ${missedMed.medicationName} (${missedMed.dosage})`;
     console.log("🔔", message);
+
     this.showVisualAlert(message, "info");
 
     try {
+      window.focus();
+      document.title = "💊 MEDICATION TIME!";
+      setTimeout(() => {
+        document.title =
+          "MediCare Assistant - Medication Reminders for Seniors";
+      }, 3000);
+    } catch (e) {}
+
+    try {
       if (Notification.permission === "granted") {
-        const notification = new Notification("Medication Reminder", {
+        const notification = new Notification("💊 MEDICATION REMINDER", {
           body: message,
           icon: "/icon-192.png",
-          tag: `gentle-${missedMed.medicationId}`,
+          tag: `gentle-${Date.now()}`,
           requireInteraction: false,
+          silent: false,
         });
 
-        // Auto-close after 30 seconds
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+
         setTimeout(() => {
           notification.close();
-        }, 30000);
+        }, 10000);
       }
     } catch (error) {
       console.warn("Gentle reminder notification failed:", error);
@@ -466,21 +481,38 @@ class EmergencyEscalationService {
 
     const message = `⚠️ IMPORTANT: You missed your ${missedMed.medicationName}. Please take it now!`;
     console.log("🔔", message);
+
+    // Visual alert
     this.showVisualAlert(message, "warning");
+
+    // Focus window
+    try {
+      window.focus();
+      document.title = "⚠️ MISSED MEDICATION!";
+      setTimeout(() => {
+        document.title =
+          "MediCare Assistant - Medication Reminders for Seniors";
+      }, 3000);
+    } catch (e) {}
 
     try {
       if (Notification.permission === "granted") {
-        const notification = new Notification("MISSED MEDICATION", {
+        const notification = new Notification("⚠️ MISSED MEDICATION", {
           body: message,
           icon: "/icon-192.png",
-          tag: `firm-${missedMed.medicationId}`,
-          requireInteraction: false, // Changed to false so it can auto-close
+          tag: `firm-${Date.now()}`,
+          requireInteraction: false,
+          silent: false,
         });
 
-        // Auto-close after 30 seconds
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+
         setTimeout(() => {
           notification.close();
-        }, 30000);
+        }, 15000);
       }
     } catch (error) {
       console.warn("Firm reminder notification failed:", error);
@@ -492,21 +524,43 @@ class EmergencyEscalationService {
 
     const message = `🚨 URGENT: Multiple missed medications detected. Family has been notified. Please take ${missedMed.medicationName} immediately!`;
     console.log("🚨", message);
+
     this.showVisualAlert(message, "error");
 
     try {
+      window.focus();
+      document.title = "🚨 EMERGENCY ALERT!";
+
+      let flashCount = 0;
+      const flashInterval = setInterval(() => {
+        document.title =
+          flashCount % 2 === 0 ? "🚨 EMERGENCY!" : "TAKE MEDICATION!";
+        flashCount++;
+        if (flashCount >= 6) {
+          clearInterval(flashInterval);
+          document.title =
+            "MediCare Assistant - Medication Reminders for Seniors";
+        }
+      }, 1000);
+    } catch (e) {}
+    try {
       if (Notification.permission === "granted") {
-        const notification = new Notification("EMERGENCY ALERT", {
+        const notification = new Notification("🚨 EMERGENCY ALERT", {
           body: message,
           icon: "/icon-192.png",
-          tag: `emergency-${missedMed.medicationId}`,
-          requireInteraction: false, // Changed to false so it can auto-close
+          tag: `emergency-${Date.now()}`,
+          requireInteraction: false,
+          silent: false,
         });
 
-        // Auto-close after 45 seconds (longer for emergency)
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+
         setTimeout(() => {
           notification.close();
-        }, 45000);
+        }, 20000);
       }
     } catch (error) {
       console.warn("Emergency notification failed:", error);

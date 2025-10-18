@@ -32,7 +32,6 @@ const getRoleDefaultRoute = (role: string): string => {
   }
 };
 
-// 🔒 ROLE PERMISSIONS MATRIX
 const rolePermissions = {
   ADMIN: ["/admin", "/medications", "/family", "/analytics", "/family-setup"],
   SENIOR: ["/medications", "/family"],
@@ -61,7 +60,6 @@ export function ProtectedRoute({
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      console.log(" ProtectedRoute: Not authenticated, redirecting to signin");
       router.push("/auth/signin");
       return;
     }
@@ -69,7 +67,6 @@ export function ProtectedRoute({
     const userRole = user?.role;
 
     if (!userRole) {
-      console.log(" ProtectedRoute: No user role, redirecting to signin");
       router.push("/auth/signin");
       return;
     }
@@ -83,8 +80,6 @@ export function ProtectedRoute({
 
     if (!isPathAllowed) {
       const defaultRoute = getRoleDefaultRoute(userRole);
-      console.log(` ProtectedRoute: ${userRole} cannot access ${pathname}`);
-      console.log(` Redirecting to default route: ${defaultRoute}`);
       router.push(defaultRoute);
       return;
     }
@@ -103,22 +98,22 @@ export function ProtectedRoute({
       const defaultRoute = getRoleDefaultRoute(userRole);
 
       if (fallbackUrl) {
-        console.log(
-          ` ProtectedRoute: Access denied, redirecting to fallback: ${fallbackUrl}`
-        );
+        // console.log(
+        //   ` ProtectedRoute: Access denied, redirecting to fallback: ${fallbackUrl}`
+        // );
         router.push(fallbackUrl);
       } else {
-        console.log(
-          ` ProtectedRoute: Access denied for ${userRole}, redirecting to default: ${defaultRoute}`
-        );
+        // console.log(
+        //   ` ProtectedRoute: Access denied for ${userRole}, redirecting to default: ${defaultRoute}`
+        // );
         router.push(defaultRoute);
       }
       return;
     }
 
-    console.log(
-      `✅ ProtectedRoute: Access granted for ${userRole} to ${pathname}`
-    );
+    // console.log(
+    //   `ProtectedRoute: Access granted for ${userRole} to ${pathname}`
+    // );
   }, [
     isLoading,
     isAuthenticated,

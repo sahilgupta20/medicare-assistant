@@ -48,7 +48,6 @@ export async function sendDailyFamilyUpdates() {
 
     return results;
   } catch (error) {
-    console.error("Daily updates failed:", error);
     throw error;
   }
 }

@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           role: "SENIOR",
         },
       });
-      console.log("👤 Created new user:", user.id);
+      console.log(" Created new user:", user.id);
     }
 
     // Process times - handle both array and string formats
@@ -130,7 +130,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const data = await request.json();
-    console.log("📝 Updating medication:", id, data);
+    console.log(" Updating medication:", id, data);
 
     // Enhanced validation for updates
     const validationErrors = [];

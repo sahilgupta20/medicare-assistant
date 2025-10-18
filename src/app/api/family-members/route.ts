@@ -21,10 +21,8 @@ export async function GET() {
           : member.notificationPreferences,
     }));
 
-    console.log("Fetched family members:", parsedFamilyMembers.length);
     return NextResponse.json(parsedFamilyMembers);
   } catch (error) {
-    console.error("Error fetching family members:", error);
     return NextResponse.json(
       { error: "Failed to fetch family members" },
       { status: 500 }
@@ -95,7 +93,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log("📝 Updating family member:", id, body);
+    console.log("Updating family member:", id, body);
 
     const updatedFamilyMember = await prisma.familyMember.update({
       where: { id },
@@ -112,7 +110,7 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    console.log(" Updated family member:", updatedFamilyMember.id);
+    console.log("Updated family member:", updatedFamilyMember.id);
 
     // Return with parsed notificationPreferences
     const responseData = {
@@ -155,13 +153,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    console.log("🗑️ Deleting family member:", id);
+    console.log("Deleting family member:", id);
 
     await prisma.familyMember.delete({
       where: { id },
     });
 
-    console.log(" Deleted family member:", id);
+    console.log("Deleted family member:", id);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(" Error deleting family member:", error);

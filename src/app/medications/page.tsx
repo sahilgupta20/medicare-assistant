@@ -200,7 +200,7 @@ export default function MedicationsPage() {
 
     if (medications.length > 0 && notificationsEnabled && !remindersScheduled) {
       console.log(
-        "🔔 Auto-scheduling reminders for",
+        " Auto-scheduling reminders for",
         medications.length,
         "medications"
       );
@@ -231,8 +231,8 @@ export default function MedicationsPage() {
             : [],
         }));
 
-        console.log("✅ Medications normalized:", normalizedData.length);
-        console.log("📋 First med times:", normalizedData[0]?.times);
+        console.log(" Medications normalized:", normalizedData.length);
+        console.log(" First med times:", normalizedData[0]?.times);
         setMedications(normalizedData);
       }
     } catch (error) {
@@ -542,7 +542,7 @@ export default function MedicationsPage() {
         }
 
         console.log(
-          `✅ Successfully marked ${medicationId} as taken at ${scheduledTime}`
+          ` Successfully marked ${medicationId} as taken at ${scheduledTime}`
         );
         alert("Medication marked as taken! Great job staying healthy!");
       } else {

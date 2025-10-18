@@ -133,7 +133,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Family notification error:", error);
     return NextResponse.json(
       {
         error: "Failed to send family notifications",
@@ -191,7 +190,7 @@ async function sendEmailNotification(
   // - Nodemailer with SMTP
   // - Resend
 
-  console.log(`📧 Sending email to ${email}:`);
+  console.log(`Sending email to ${email}:`);
   console.log("Subject: Daily Health Update for", data.seniorName);
   console.log("Content:", formatEmailContent(data));
 
@@ -209,7 +208,7 @@ async function sendSMSNotification(phone: string, data: any): Promise<boolean> {
   // - MessageBird
 
   const smsContent = formatSMSContent(data);
-  console.log(`📱 Sending SMS to ${phone}:`);
+  console.log(`Sending SMS to ${phone}:`);
   console.log(smsContent);
 
   // Mock successful send for demo
@@ -324,62 +323,3 @@ function generateMockNotificationHistory(seniorId: string, days: number) {
 
   return notifications;
 }
-
-// Auto-send daily updates (would be called by a cron job)
-// export async function sendDailyFamilyUpdates() {
-//   try {
-//     // Get all seniors who have family members
-//     const seniors = await prisma.user.findMany({
-//       where: {
-//         role: 'SENIOR',
-//         caregivers: {
-//           some: {}
-//         }
-//       },
-//       include: {
-//         caregivers: {
-//           include: {
-//             caregiver: true
-//           }
-//         }
-//       }
-//     })
-
-//     const results = []
-
-//     for (const senior of seniors) {
-//       try {
-//         // Send daily update for each senior
-//         const result = await fetch('/api/family/notifications', {
-//           method: 'POST',
-//           headers: { 'Content-Type': 'application/json' },
-//           body: JSON.stringify({
-//             seniorId: senior.id,
-//             type: 'daily_update',
-//             message: 'Automated daily health update'
-//           })
-//         })
-
-//         results.push({
-//           seniorId: senior.id,
-//           seniorName: senior.name,
-//           status: result.ok ? 'sent' : 'failed'
-//         })
-
-//       } catch (error) {
-//         results.push({
-//           seniorId: senior.id,
-//           seniorName: senior.name,
-//           status: 'failed',
-//           error: error instanceof Error ? error.message : 'Unknown error'
-//         })
-//       }
-//     }
-
-//     return results
-
-//   } catch (error) {
-//     console.error('Daily updates failed:', error)
-//     throw error
-//   }
-// }

@@ -79,12 +79,12 @@ class EmergencyEscalationService {
 
   constructor() {
     this.familyMembers = [];
-    console.log("✅ Emergency escalation service initialized");
+    console.log("Emergency escalation service initialized");
   }
 
   private async loadFamilyMembersFromDatabase(): Promise<FamilyMember[]> {
     try {
-      console.log("📥 Loading family members from database...");
+      console.log("Loading family members from database...");
       const response = await fetch("/api/family-members");
 
       if (response.ok) {
@@ -120,22 +120,21 @@ class EmergencyEscalationService {
           });
 
           console.log(
-            "✅ Successfully loaded family members:",
+            "Successfully loaded family members:",
             mappedMembers.map((m: any) => m.name)
           );
           return mappedMembers;
         }
       }
     } catch (error) {
-      console.error("❌ Error loading family members:", error);
+      console.error("Error loading family members:", error);
     }
 
-    console.log("⚠️ No family members found in database");
+    console.log("No family members found in database");
     return [];
   }
 
   public async testEscalation() {
-    console.log("🧪 Testing escalation with database family members...");
     await this.reportMissedMedication(
       "test-med-123",
       "Blood Pressure Medicine",
@@ -621,7 +620,7 @@ class EmergencyEscalationService {
 
   addFamilyMember(member: FamilyMember) {
     this.familyMembers.push(member);
-    console.log(`👤 Added family member: ${member.name}`);
+    console.log(`Added family member: ${member.name}`);
   }
 
   getActiveMissedMedications(): MissedMedication[] {
@@ -723,18 +722,10 @@ class EmergencyEscalationService {
 
 export const emergencyEscalationService = new EmergencyEscalationService();
 
-export function integrateMedicationTracking() {
-  console.log(" Emergency escalation system ready for integration");
-}
-
-//  Expose to window for testing in browser console
+export function integrateMedicationTracking() {}
 if (typeof window !== "undefined") {
   (window as any).testEscalation = () => {
-    console.log(" Starting escalation test from console...");
     emergencyEscalationService.testEscalation();
   };
   (window as any).escalationService = emergencyEscalationService;
-  console.log(
-    " Test functions available: window.testEscalation() or window.escalationService"
-  );
 }

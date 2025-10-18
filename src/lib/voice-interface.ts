@@ -88,7 +88,7 @@ class VoiceInterfaceService {
       this.state.isSupported = true;
     }
 
-    console.log("🗣️ Voice interface initialized:", {
+    console.log(" Voice interface initialized:", {
       recognition: !!this.recognition,
       synthesis: !!this.synthesis,
       supported: this.state.isSupported,

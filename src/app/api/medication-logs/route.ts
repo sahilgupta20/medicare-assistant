@@ -5,7 +5,7 @@ import { prisma } from "../../../lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    console.log("📥 Creating medication log:", data);
+    console.log(" Creating medication log:", data);
 
     if (!data.medicationId) {
       return NextResponse.json(
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingLog) {
-      console.log("⚠️ Duplicate log prevented for:", data.medicationId);
-      return NextResponse.json(existingLog, { status: 200 }); // Return existing log
+      console.log(" Duplicate log prevented for:", data.medicationId);
+      return NextResponse.json(existingLog, { status: 200 });
     }
 
     const log = await prisma.medicationLog.create({
@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("✅ Successfully created medication log:", log.id);
+    console.log(" Successfully created medication log:", log.id);
     return NextResponse.json(log, { status: 201 });
   } catch (error) {
-    console.error("❌ Error creating medication log:", error);
+    console.error(" Error creating medication log:", error);
     return NextResponse.json(
       {
         error: "Failed to log medication",
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const limit = parseInt(searchParams.get("limit") || "50");
 
-    console.log("🔍 Querying logs with:", {
+    console.log(" Querying logs with:", {
       medicationId,
       date,
       time,
@@ -138,10 +138,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log(`📊 Retrieved ${logs.length} medication logs`);
+    console.log(` Retrieved ${logs.length} medication logs`);
     return NextResponse.json(logs);
   } catch (error) {
-    console.error("❌ Error fetching medication logs:", error);
+    console.error(" Error fetching medication logs:", error);
     return NextResponse.json(
       {
         error: "Failed to fetch logs",
@@ -177,7 +177,7 @@ export async function PUT(request: NextRequest) {
     console.log("✅ Updated medication log:", updatedLog.id);
     return NextResponse.json(updatedLog);
   } catch (error) {
-    console.error("❌ Error updating medication log:", error);
+    console.error(" Error updating medication log:", error);
     return NextResponse.json(
       { error: "Failed to update log" },
       { status: 500 }
@@ -202,10 +202,10 @@ export async function DELETE(request: NextRequest) {
       where: { id },
     });
 
-    console.log("🗑️ Deleted medication log:", id);
+    console.log(" Deleted medication log:", id);
     return NextResponse.json({ message: "Log deleted successfully" });
   } catch (error) {
-    console.error("❌ Error deleting medication log:", error);
+    console.error(" Error deleting medication log:", error);
     return NextResponse.json(
       { error: "Failed to delete log" },
       { status: 500 }

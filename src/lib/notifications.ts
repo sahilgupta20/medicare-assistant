@@ -74,27 +74,22 @@ class MediCareNotificationService {
     this.initializeAudio();
     this.checkBrowserSupport();
     this.detectTimezone();
-    console.log(
-      `🔔 Notification service initialized with timezone: ${this.state.timezone}`
-    );
   }
 
   private detectTimezone() {
     try {
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      console.log(`⏰ Detected timezone: ${userTimezone}`);
-
       if (userTimezone === "Asia/Kolkata" || userTimezone === "Asia/Calcutta") {
         this.state.timezone = "Asia/Kolkata";
-        console.log("✅ Using IST timezone");
+        console.log("Using IST timezone");
       } else {
         console.log(
-          `ℹ️ User timezone (${userTimezone}) differs from IST, using user timezone`
+          `ℹUser timezone (${userTimezone}) differs from IST, using user timezone`
         );
         this.state.timezone = userTimezone;
       }
     } catch (error) {
-      console.warn("⚠️ Timezone detection failed using IST default");
+      console.warn("Timezone detection failed using IST default");
       this.state.timezone = "Asia/Kolkata";
     }
   }
@@ -131,9 +126,9 @@ class MediCareNotificationService {
         oscillator.stop(audioContext.currentTime + 0.3);
       };
     } catch (error) {
-      console.warn("⚠️ Audio initialization failed:", error);
+      console.warn("Audio initialization failed:", error);
       this.createNotificationTone = () => {
-        console.log("🔔 *Gentle notification beep*");
+        console.log("*Gentle notification beep*");
       };
     }
   }
@@ -142,7 +137,7 @@ class MediCareNotificationService {
     if (typeof window === "undefined") return false;
 
     if (!("Notification" in window)) {
-      console.error("❌ Browser does not support notifications");
+      console.error(" Browser does not support notifications");
       return false;
     }
 
@@ -153,11 +148,11 @@ class MediCareNotificationService {
     this.initialize();
 
     if (typeof window === "undefined") {
-      console.warn("⚠️ Not in browser environment");
+      console.warn(" Not in browser environment");
       return false;
     }
 
-    console.log("🔔 Requesting notification permission...");
+    console.log(" Requesting notification permission...");
 
     if (!this.checkBrowserSupport()) {
       throw new Error("Notifications not supported in this browser");
@@ -167,22 +162,22 @@ class MediCareNotificationService {
       const permission = await Notification.requestPermission();
       this.state.permission = permission;
 
-      console.log("📝 Permission result:", permission);
+      console.log("Permission result:", permission);
 
       if (permission === "granted") {
         this.state.isEnabled = true;
-        console.log("✅ Notifications enabled successfully");
+        console.log("Notifications enabled successfully");
         await this.showTestNotification();
         return true;
       } else {
         console.log(
-          "⚠️ Notification permission denied, will use console logs only"
+          "Notification permission denied, will use console logs only"
         );
         return false;
       }
     } catch (error) {
-      console.error("❌ Permission request failed:", error);
-      console.log("ℹ️ Using console notifications only");
+      console.error("Permission request failed:", error);
+      console.log("ℹUsing console notifications only");
       return false;
     }
   }
@@ -193,7 +188,7 @@ class MediCareNotificationService {
     const now = Date.now();
 
     if (now - this.state.lastTestTime < 3000) {
-      console.log("⏳ Test notification rate limited");
+      console.log("Test notification rate limited");
       return;
     }
 
@@ -218,15 +213,13 @@ class MediCareNotificationService {
         }, 5000);
 
         this.playNotificationSound();
-        console.log("✅ Test notification sent successfully with IST time");
+        console.log("Test notification sent successfully with IST time");
       } else {
-        console.log(
-          `ℹ️ Test: Notifications not permitted - using console only`
-        );
+        console.log(`ℹTest: Notifications not permitted - using console only`);
       }
     } catch (error) {
-      console.warn("⚠️ Browser notification failed:", error);
-      console.log(`ℹ️ Console notification: MediCare test at ${currentIST}`);
+      console.warn("Browser notification failed:", error);
+      console.log(`Console notification: MediCare test at ${currentIST}`);
       this.playNotificationSound();
     }
   }
@@ -236,16 +229,16 @@ class MediCareNotificationService {
 
     if (typeof window === "undefined") return;
 
-    console.log(
-      `📅 Scheduling ${medications.length} medication reminders for ${this.state.timezone}`
-    );
+    // console.log(
+    //   `Scheduling ${medications.length} medication reminders for ${this.state.timezone}`
+    // );
     this.clearAllReminders();
 
     medications.forEach((medication) => {
       this.scheduleSingleReminder(medication);
     });
 
-    console.log(`✅ ${this.state.scheduledReminders.size} reminders scheduled`);
+    console.log(`${this.state.scheduledReminders.size} reminders scheduled`);
     this.logScheduleSummary();
   }
 
@@ -253,7 +246,7 @@ class MediCareNotificationService {
     if (typeof window === "undefined") return;
 
     try {
-      console.log("📋 Scheduling medication:", medication);
+      console.log("Scheduling medication:", medication);
 
       let timeData =
         medication.times ||
@@ -263,7 +256,7 @@ class MediCareNotificationService {
 
       if (!timeData) {
         console.warn(
-          `⚠️ No time field found for ${medication.name}. Available fields:`,
+          `No time field found for ${medication.name}. Available fields:`,
           Object.keys(medication)
         );
         return;
@@ -281,20 +274,17 @@ class MediCareNotificationService {
           .map((t) => t.trim())
           .filter(Boolean);
       } else {
-        console.warn(
-          `⚠️ Invalid time format for ${medication.name}:`,
-          timeData
-        );
+        console.warn(`Invalid time format for ${medication.name}:`, timeData);
         return;
       }
 
       if (timeStrings.length === 0) {
-        console.warn(`⚠️ No valid times found for ${medication.name}`);
+        console.warn(`No valid times found for ${medication.name}`);
         return;
       }
 
       console.log(
-        `📝 Found ${timeStrings.length} time slots for ${medication.name}:`,
+        `Found ${timeStrings.length} time slots for ${medication.name}:`,
         timeStrings
       );
 
@@ -303,7 +293,7 @@ class MediCareNotificationService {
       });
     } catch (error) {
       console.error(
-        `❌ Failed to schedule reminder for ${medication.name}:`,
+        `Failed to schedule reminder for ${medication.name}:`,
         error
       );
     }
@@ -336,7 +326,7 @@ class MediCareNotificationService {
         minutes > 59
       ) {
         console.warn(
-          `⚠️ Invalid time values for ${medication.name}: ${cleanTime}`
+          `Invalid time values for ${medication.name}: ${cleanTime}`
         );
         return;
       }
@@ -348,17 +338,17 @@ class MediCareNotificationService {
       if (targetTime < now) {
         targetTime.setDate(targetTime.getDate() + 1);
         console.log(
-          `⏭️ Time ${hours}:${minutes} has passed today, scheduling for tomorrow`
+          `Time ${hours}:${minutes} has passed today, scheduling for tomorrow`
         );
       } else {
-        console.log(`⏰ Time ${hours}:${minutes} is later today`);
+        console.log(`Time ${hours}:${minutes} is later today`);
       }
 
       const timeUntilReminder = targetTime.getTime() - now.getTime();
       const minutesUntil = Math.round(timeUntilReminder / (1000 * 60));
 
       console.log(
-        `📍 ${medication.name} at ${cleanTime} (${
+        `${medication.name} at ${cleanTime} (${
           this.state.timezone
         }): reminder in ${minutesUntil} minutes (${targetTime.toLocaleString(
           "en-IN",
@@ -368,7 +358,7 @@ class MediCareNotificationService {
 
       // Schedule the medication reminder
       const timeoutId = window.setTimeout(() => {
-        console.log(`🔔 REMINDER TIME: ${medication.name} at ${cleanTime}`);
+        console.log(`REMINDER TIME: ${medication.name} at ${cleanTime}`);
         this.showMedicationReminder(medication, cleanTime);
 
         // Schedule missed medication check IMMEDIATELY after reminder
@@ -382,10 +372,10 @@ class MediCareNotificationService {
 
       const reminderKey = `${medication.id}-${cleanTime}`;
       this.state.scheduledReminders.set(reminderKey, timeoutId);
-      console.log(`✅ Scheduled reminder: ${reminderKey}`);
+      console.log(`Scheduled reminder: ${reminderKey}`);
     } catch (error) {
       console.error(
-        `❌ Failed to schedule time slot ${timeString} for ${medication.name}:`,
+        `Failed to schedule time slot ${timeString} for ${medication.name}:`,
         error
       );
     }
@@ -403,22 +393,20 @@ class MediCareNotificationService {
 
     if (checkTime <= now) {
       console.log(
-        `⏭️ Skipping missed check for past time: ${medication.name} at ${timeSlot}`
+        `Skipping missed check for past time: ${medication.name} at ${timeSlot}`
       );
       return;
     }
 
     const timeUntilCheck = checkTime - now;
     console.log(
-      `⏰ Scheduling missed check for ${
+      `Scheduling missed check for ${
         medication.name
       } at ${timeSlot} in ${Math.round(timeUntilCheck / 1000 / 60)} minutes`
     );
 
     const missedTimerId = window.setTimeout(async () => {
-      console.log(
-        `🔍 CHECKING: Did user take ${medication.name} at ${timeSlot}?`
-      );
+      console.log(`CHECKING: Did user take ${medication.name} at ${timeSlot}?`);
 
       const wasTaken = await this.checkMedicationStatus(
         medication.id,
@@ -427,8 +415,8 @@ class MediCareNotificationService {
       );
 
       if (!wasTaken) {
-        console.log(`⚠️ MEDICATION MISSED: ${medication.name} at ${timeSlot}`);
-        console.log(`🚨 Starting emergency escalation for ${medication.name}`);
+        console.log(`MEDICATION MISSED: ${medication.name} at ${timeSlot}`);
+        console.log(`Starting emergency escalation for ${medication.name}`);
 
         try {
           emergencyEscalationService.reportMissedMedication(
@@ -437,20 +425,20 @@ class MediCareNotificationService {
             medication.dosage || "1 dose",
             timeSlot
           );
-          console.log(`✅ Emergency escalation started for ${medication.name}`);
+          console.log(`Emergency escalation started for ${medication.name}`);
         } catch (error) {
-          console.error("❌ Failed to trigger emergency escalation:", error);
+          console.error("Failed to trigger emergency escalation:", error);
         }
       } else {
         console.log(
-          `✅ Medication confirmed taken: ${medication.name} at ${timeSlot}`
+          `Medication confirmed taken: ${medication.name} at ${timeSlot}`
         );
       }
     }, timeUntilCheck);
 
     const missedKey = `missed-${medication.id}-${timeSlot}`;
     this.state.missedMedicationTimers.set(missedKey, missedTimerId);
-    console.log(`✅ Scheduled missed check: ${missedKey}`);
+    console.log(`Scheduled missed check: ${missedKey}`);
   }
 
   private async checkMedicationStatus(
@@ -479,7 +467,7 @@ class MediCareNotificationService {
 
       if (response.ok) {
         const logs = await response.json();
-        console.log(`📋 Found ${logs.length} logs for ${medicationId}`);
+        console.log(`Found ${logs.length} logs for ${medicationId}`);
 
         if (logs.length > 0) {
           const takenLog = logs.find(
@@ -488,24 +476,22 @@ class MediCareNotificationService {
           );
 
           if (takenLog) {
-            console.log(` Found TAKEN log:`, takenLog.id);
+            console.log(`Found TAKEN log:`, takenLog.id);
             return true;
           }
         }
 
-        console.log(` No TAKEN log found for ${medicationId} at ${timeSlot}`);
+        console.log(`No TAKEN log found for ${medicationId} at ${timeSlot}`);
         return false;
       } else {
-        console.error(" API error:", response.statusText);
+        console.error("API error:", response.statusText);
         return false;
       }
     } catch (error) {
-      console.error(" Error checking medication status from database:", error);
+      console.error("Error checking medication status from database:", error);
       return false;
     }
   }
-
-  // 🔧 FIXED: Update in showMedicationReminder() method
 
   async showMedicationReminder(
     medication: MedicationSchedule,
@@ -516,7 +502,7 @@ class MediCareNotificationService {
     if (typeof window === "undefined") return;
 
     console.log(
-      `🔔 Showing reminder for ${medication.name} at ${timeSlot || "now"}`
+      `Showing reminder for ${medication.name} at ${timeSlot || "now"}`
     );
 
     const currentTime = this.getCurrentIST();
@@ -568,7 +554,7 @@ class MediCareNotificationService {
         }, 30000);
 
         this.playNotificationSound();
-        console.log(`✅ Browser notification shown for ${medication.name}`);
+        console.log(`Browser notification shown for ${medication.name}`);
       } else {
         console.log(`\n${"=".repeat(50)}`);
         console.log(` MEDICATION REMINDER`);
@@ -604,8 +590,6 @@ class MediCareNotificationService {
 
     const overlay = document.createElement("div");
     overlay.id = "medicare-notification-overlay";
-
-    // 🔧 FIX: Store timeSlot in data attribute
     overlay.setAttribute("data-medication-id", medication.id);
     overlay.setAttribute("data-time-slot", timeSlot || "");
 
@@ -715,10 +699,8 @@ class MediCareNotificationService {
       const medId = overlay.getAttribute("data-medication-id") || medication.id;
 
       console.log(
-        `👆 Dismiss clicked for ${medId} at ${savedTimeSlot || "current time"}`
+        `Dismiss clicked for ${medId} at ${savedTimeSlot || "current time"}`
       );
-
-      // 🔧 FIX: Pass the savedTimeSlot
       await this.markMedicationTaken(medId, savedTimeSlot);
       removeNotification();
     });
@@ -751,7 +733,6 @@ class MediCareNotificationService {
       console.log(` Cancelled missed medication check for ${medicationId}`);
     }
 
-    // Save to database
     try {
       const now = new Date();
       let scheduledFor: Date;
@@ -761,10 +742,9 @@ class MediCareNotificationService {
         scheduledFor = new Date();
         scheduledFor.setHours(hours, minutes, 0, 0);
         console.log(
-          `📅 Using scheduled time: ${timeSlot} (${scheduledFor.toISOString()})`
+          `Using scheduled time: ${timeSlot} (${scheduledFor.toISOString()})`
         );
       } else {
-        // Fallback: use current time (not ideal, but better than nothing)
         scheduledFor = now;
         console.warn(
           ` No timeSlot provided, using current time: ${scheduledFor.toISOString()}`
@@ -778,7 +758,7 @@ class MediCareNotificationService {
         notes: "Marked as taken via notification",
       };
 
-      console.log(" Saving medication log to database:", logData);
+      console.log("Saving medication log to database:", logData);
 
       const response = await fetch("/api/medication-logs", {
         method: "POST",
@@ -790,16 +770,15 @@ class MediCareNotificationService {
 
       if (response.ok) {
         const savedLog = await response.json();
-        console.log(" Medication log saved successfully:", savedLog.id);
+        console.log("Medication log saved successfully:", savedLog.id);
       } else {
         const errorData = await response.json();
-        console.error(" Failed to save medication log:", errorData);
+        console.error("Failed to save medication log:", errorData);
       }
     } catch (error) {
-      console.error(" Error saving medication log to database:", error);
+      console.error("Error saving medication log to database:", error);
     }
 
-    // Notify emergency escalation service
     emergencyEscalationService.medicationTaken(medicationId);
     console.log(
       ` Notified escalation service: medication ${medicationId} taken`
@@ -812,10 +791,10 @@ class MediCareNotificationService {
     try {
       if (this.createNotificationTone) {
         this.createNotificationTone();
-        console.log("🔊 Playing notification sound");
+        console.log(" Playing notification sound");
       }
     } catch (error) {
-      console.warn("⚠️ Audio notification failed:", error);
+      console.warn(" Audio notification failed:", error);
     }
   }
 
@@ -853,7 +832,7 @@ class MediCareNotificationService {
     });
     this.state.missedMedicationTimers.clear();
 
-    console.log("🧹 All reminders and escalation timers cleared");
+    console.log(" All reminders and escalation timers cleared");
   }
 
   public getCurrentIST(): string {
@@ -886,7 +865,7 @@ class MediCareNotificationService {
   }
 
   public logScheduleSummary(): void {
-    console.log("\n📊 MEDICATION SCHEDULE SUMMARY");
+    console.log("\n MEDICATION SCHEDULE SUMMARY");
     console.log("=====================================");
     console.log(
       `Current time (${this.state.timezone}): ${this.getCurrentIST()}`
@@ -897,14 +876,14 @@ class MediCareNotificationService {
     );
 
     if (this.state.scheduledReminders.size > 0) {
-      console.log("\n📅 Scheduled reminders:");
+      console.log("\n Scheduled reminders:");
       this.state.scheduledReminders.forEach((timerId, key) => {
         console.log(`   ${key} (Timer ID: ${timerId})`);
       });
     }
 
     if (this.state.missedMedicationTimers.size > 0) {
-      console.log("\n⏰ Missed medication checks:");
+      console.log("\n Missed medication checks:");
       this.state.missedMedicationTimers.forEach((timerId, key) => {
         console.log(`   ${key} (Timer ID: ${timerId})`);
       });
@@ -946,7 +925,6 @@ class MediCareNotificationService {
   }
 }
 
-// Service instance creation
 let serviceInstance: MediCareNotificationService | null = null;
 
 function getNotificationService(): MediCareNotificationService {
@@ -956,7 +934,6 @@ function getNotificationService(): MediCareNotificationService {
   return serviceInstance;
 }
 
-// Exports
 export const notificationService =
   typeof window !== "undefined" ? getNotificationService() : null;
 

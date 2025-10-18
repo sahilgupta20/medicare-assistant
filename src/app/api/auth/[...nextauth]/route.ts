@@ -116,18 +116,16 @@ const handler = NextAuth({
       }
 
       if (url.startsWith("/")) {
-        console.log(" Relative URL:", url);
         return `${baseUrl}${url}`;
       }
 
       // If URL is same origin, allow it
       if (url.startsWith(baseUrl)) {
-        console.log(" Same origin redirect:", url);
         return url;
       }
 
       // Default fallback to root
-      console.log(" Default redirect to root");
+
       return baseUrl;
     },
   },
@@ -154,12 +152,8 @@ const handler = NextAuth({
   },
 
   events: {
-    async signOut({ token }) {
-      console.log(" SignOut event for:", token?.name);
-    },
-    async signIn({ user }) {
-      console.log(` SignIn event: ${user.name} (${user.role})`);
-    },
+    async signOut({ token }) {},
+    async signIn({ user }) {},
   },
 
   debug: process.env.NODE_ENV === "development",

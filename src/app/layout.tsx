@@ -48,10 +48,10 @@ export default function RootLayout({
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
-                      console.log('✅ SW registered successfully:', registration.scope);
+                      console.log(' SW registered successfully:', registration.scope);
                     })
                     .catch(function(error) {
-                      console.log('❌ SW registration failed:', error);
+                      console.log(' SW registration failed:', error);
                     });
                 });
               }
@@ -61,13 +61,9 @@ export default function RootLayout({
                 const cookies = document.cookie;
                 const hasNextAuth = cookies.includes('next-auth');
                 const hasSessionToken = cookies.includes('session-token');
-                console.log('🔍 NextAuth cookies found:', hasNextAuth);
-                console.log('🔍 Session token found:', hasSessionToken);
-                console.log('🔍 All cookies:', cookies);
                 return hasNextAuth || hasSessionToken;
               };
               
-              console.log('🔧 Debug function added: window.checkAuth()');
             `,
           }}
         />
